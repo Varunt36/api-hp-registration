@@ -28,6 +28,7 @@ CREATE TABLE members (
   dob              DATE        NOT NULL,
   email            TEXT        NOT NULL,
   phone            TEXT,
+  qr_url           TEXT,
   checked_in       BOOLEAN     NOT NULL DEFAULT false,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );

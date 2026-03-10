@@ -1,21 +1,28 @@
+from typing import Tuple
 import io
-import base64
+import logging
 import qrcode
+from app.core.supabase import supabase
+
+logger = logging.getLogger(__name__)
 
 
-def generate_qr_base64(data: str) -> str:
-    """Generate a QR code and return it as a base64-encoded PNG string."""
-    qr = qrcode.make(data)
+def generate_qr_image(ticket_number: str) -> Tuple[bytes, str]:
+    """Generate QR code PNG, upload to Supabase Storage, return (bytes, public_url)."""
+    qr = qrcode.make(ticket_number)
     buffer = io.BytesIO()
     qr.save(buffer, format="PNG")
     buffer.seek(0)
-    return base64.b64encode(buffer.read()).decode("utf-8")
+    qr_bytes = buffer.read()
 
+    # Upload to Supabase Storage
+    file_path = f"{ticket_number}.png"
+    supabase.storage.from_("qr-codes").upload(
+        file_path,
+        qr_bytes,
+        {"content-type": "image/png"},
+    )
 
-def generate_qr_bytes(data: str) -> bytes:
-    """Generate a QR code and return raw PNG bytes (for email attachment)."""
-    qr = qrcode.make(data)
-    buffer = io.BytesIO()
-    qr.save(buffer, format="PNG")
-    buffer.seek(0)
-    return buffer.read()
+    public_url = supabase.storage.from_("qr-codes").get_public_url(file_path)
+    logger.info(f"QR uploaded for {ticket_number}")
+    return qr_bytes, public_url

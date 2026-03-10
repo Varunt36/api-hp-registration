@@ -1,14 +1,11 @@
+import logging
+from collections import defaultdict
 from app.core.supabase import supabase
 from app.models.registration import RegistrationInput
-from app.services.email_service import send_registration_emails
+from app.services.email_service import send_combined_qr_email, send_info_emails
+from app.services.qr_service import generate_qr_image
 
-
-def get_next_seq() -> int:
-    """Get the next sequence number for registration reference."""
-    result = supabase.table("registrations").select("seq").order("seq", desc=True).limit(1).execute()
-    if result.data:
-        return result.data[0]["seq"] + 1
-    return 1
+logger = logging.getLogger(__name__)
 
 
 def check_country_quota(country: str, new_member_count: int):
@@ -32,28 +29,28 @@ def check_country_quota(country: str, new_member_count: int):
 
 
 def create_registration(data: RegistrationInput) -> dict:
-    """Create a registration with all members, generate QR codes, and send emails."""
-    # Check country quota before proceeding
+    """Create registration + members in DB. Returns data for background QR/email processing."""
     check_country_quota(data.country, len(data.members))
 
-    seq = get_next_seq()
-    reference = f"HP-2026-{seq:05d}"
-
-    # Insert registration
+    #1: Let DB auto-generate seq via BIGSERIAL (no race condition)
     reg_result = supabase.table("registrations").insert({
-        "seq": seq,
-        "reference": reference,
         "country": data.country,
         "karyakarta": data.karyakarta,
         "member_count": len(data.members),
-        "terms_accepted": True,
+        "terms_accepted": data.terms_accepted,  # Fix #6: from FE payload
     }).execute()
 
     registration_id = reg_result.data[0]["id"]
+    seq = reg_result.data[0]["seq"]
+    reference = f"HP-2026-{seq:05d}"
 
-    primary_email = data.members[0].email
+    # Update with generated reference
+    supabase.table("registrations").update({"reference": reference}).eq("id", registration_id).execute()
 
-    # Insert members and send emails
+    logger.info(f"Registration created: {reference} for country {data.country}")
+
+    # Insert members
+    members_data = []
     for index, member in enumerate(data.members, start=1):
         ticket_number = f"{reference}-M{index}"
 
@@ -63,16 +60,88 @@ def create_registration(data: RegistrationInput) -> dict:
             "first_name": member.first_name,
             "middle_name": member.middle_name,
             "last_name": member.last_name,
-            "gender": member.gender,
+            "gender": member.gender.value,
             "dob": str(member.dob),
             "email": member.email,
             "phone": member.phone,
             "checked_in": False,
         }
 
-        supabase.table("members").insert(member_data).execute()
+        try:
+            supabase.table("members").insert(member_data).execute()
+            members_data.append(member_data)
+        except Exception:
+            #8: rollback — delete registration (CASCADE deletes inserted members)
+            logger.exception(f"Failed to insert member {index} for {reference}, rolling back")
+            supabase.table("registrations").delete().eq("id", registration_id).execute()
+            raise ValueError("Registration failed. Please try again.")
 
-        # Send 3 emails (to member's email, or primary email if none)
-        send_registration_emails(member_data, ticket_number, primary_email)
+    logger.info(f"Inserted {len(members_data)} members for {reference}")
 
-    return {"reference": reference, "member_count": len(data.members)}
+    return {
+        "registration_id": registration_id,
+        "reference": reference,
+        "member_count": len(data.members),
+        "members_data": members_data,
+    }
+
+
+def process_qr_and_emails(registration_id: str, members_data: list, primary_email: str):
+    """Background task: generate QR codes, upload to storage, update DB, send emails.
+
+    Email logic:
+      - Primary email (main member) gets ALL members' QR codes in one email.
+      - Other members with their own email get only their own QR code.
+      - Travel Guide + Social emails sent once per unique email.
+
+    Example (3 members: M1=john@, M2=no email, M3=bob@):
+      john@ receives: 1 email with M1+M2+M3 QR codes, Travel Guide, Social = 3 emails
+      bob@  receives: 1 email with M3 QR code, Travel Guide, Social        = 3 emails
+      Total: 6 emails
+    """
+    # Step 1: Generate QR for all members
+    all_members_qr = []
+    unique_emails = set()
+
+    for member_data in members_data:
+        ticket_number = member_data["ticket_number"]
+
+        qr_bytes = None
+        try:
+            qr_bytes, qr_url = generate_qr_image(ticket_number)
+            supabase.table("members").update({"qr_url": qr_url}).eq("ticket_number", ticket_number).execute()
+        except Exception:
+            logger.exception(f"QR generation/upload failed for {ticket_number}")
+
+        member_name = f"{member_data['first_name']} {member_data['last_name']}"
+        member_email = member_data.get("email")
+
+        all_members_qr.append({
+            "member_name": member_name,
+            "ticket_number": ticket_number,
+            "qr_bytes": qr_bytes,
+            "email": member_email,
+        })
+
+        unique_emails.add(member_email or primary_email)
+
+    # Step 2: Primary email gets ALL members' QR codes in one email
+    try:
+        send_combined_qr_email(primary_email, all_members_qr)
+    except Exception:
+        logger.exception(f"Combined QR email failed for {primary_email}")
+
+    # Step 3: Other members with their own email get only their own QR code
+    for item in all_members_qr:
+        if item["email"] and item["email"] != primary_email:
+            try:
+                send_combined_qr_email(item["email"], [item])
+            except Exception:
+                logger.exception(f"QR email failed for {item['email']}")
+
+    # Step 4: Send info emails once per unique email
+    for email_address in unique_emails:
+        try:
+            send_info_emails(email_address)
+        except Exception:
+            logger.exception(f"Info emails failed for {email_address}")
