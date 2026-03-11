@@ -13,12 +13,18 @@ class Gender(str, Enum):
 
 
 class MemberInput(BaseModel):
+    """A single member in a registration group.
+
+    Required: first_name, last_name, gender, dob
+    Optional: middle_name, email, phone
+    Note: The first member in the group MUST have an email (validated at RegistrationInput level).
+    """
     first_name: str
     middle_name: Optional[str] = None
     last_name: str
     gender: Gender
     dob: date
-    email: Optional[EmailStr] = None
+    email: Optional[EmailStr] = None   # Validated as proper email format by Pydantic
     phone: Optional[str] = None
 
     @field_validator("first_name", "last_name")
@@ -58,8 +64,16 @@ class MemberInput(BaseModel):
 
 
 class RegistrationInput(BaseModel):
+    """Full registration payload from the FE.
+
+    Validates:
+      - country must be one of the allowed country codes
+      - terms_accepted must be true
+      - 1-10 members allowed
+      - first member must have an email (used as primary contact for the group)
+    """
     country: str
-    karyakarta: str
+    karyakarta: str                    # Group leader / coordinator name
     terms_accepted: bool
     members: List[MemberInput]
 
@@ -97,6 +111,8 @@ class RegistrationInput(BaseModel):
 
     @model_validator(mode="after")
     def validate_first_member_email(self):
+        """First member's email is the primary contact for the entire group.
+        All proxy emails (for members without email) go to this address."""
         if self.members and not self.members[0].email:
             raise ValueError("First member must have an email address")
         return self
@@ -104,11 +120,11 @@ class RegistrationInput(BaseModel):
 
 class RegistrationResponse(BaseModel):
     success: bool
-    reference: str
+    reference: str          # e.g. "HP-2026-00042"
     member_count: int
 
 
 class CheckinResponse(BaseModel):
-    ticket_number: str
+    ticket_number: str      # e.g. "HP-2026-00042-M1"
     member_name: str
     checked_in: bool

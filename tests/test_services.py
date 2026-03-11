@@ -252,12 +252,15 @@ class TestCombinedQrEmail:
 
         with patch("resend.Emails.send") as mock_send:
             from app.services.email_service import send_combined_qr_email
-            send_combined_qr_email("john@example.com", members_qr)
+            send_combined_qr_email("john@example.com", members_qr, reference="HP-2026-00001")
 
             email = mock_send.call_args[0][0]
-            assert email["to"] == "john@example.com"
-            assert "HP-2026-00001-M1" in email["subject"]
+            assert email["to"] == ["john@example.com"]
+            assert "John Doe" in email["subject"]
+            assert "YDS Germany 2026" in email["subject"]
             assert len(email["attachments"]) == 1
+            # Template should include the reference number
+            assert "HP-2026-00001" in email["html"]
 
     def test_multi_member_combined_email(self):
         members_qr = [
@@ -268,12 +271,14 @@ class TestCombinedQrEmail:
 
         with patch("resend.Emails.send") as mock_send:
             from app.services.email_service import send_combined_qr_email
-            send_combined_qr_email("john@example.com", members_qr)
+            send_combined_qr_email("john@example.com", members_qr, reference="HP-2026-00001")
 
             assert mock_send.call_count == 1
             email = mock_send.call_args[0][0]
 
-            assert "3 Members" in email["subject"]
+            # Multi-member subject includes first member name + count
+            assert "John Doe" in email["subject"]
+            assert "+2" in email["subject"]
             assert "John Doe" in email["html"]
             assert "Jane Doe" in email["html"]
             assert "Bob Smith" in email["html"]

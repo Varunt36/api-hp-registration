@@ -55,6 +55,26 @@ CREATE TABLE payments (
 CREATE INDEX idx_payments_status ON payments(status);
 
 
+-- ── 4. COUNTRY QUOTAS ───────────────────────────────────────
+-- Must be created BEFORE the trigger that references it
+CREATE TABLE country_quotas (
+  id            UUID  PRIMARY KEY DEFAULT gen_random_uuid(),
+  country_code  TEXT  UNIQUE NOT NULL,        -- e.g. 'DE', 'US', 'IN'
+  max_members   INT   NOT NULL CHECK (max_members > 0),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Seed with initial quotas (update numbers as needed)
+INSERT INTO country_quotas (country_code, max_members) VALUES
+  ('DE', 100),
+  ('AT', 50),
+  ('CH', 50),
+  ('GB', 30),
+  ('US', 20),
+  ('IN', 30),
+  ('NZ', 20);
+
+
 -- ── 5. COUNTRY QUOTA ENFORCEMENT ────────────────────────────
 -- Trigger that runs BEFORE every registration insert.
 -- Raises an error if the new group would exceed the country's member quota.
@@ -97,22 +117,3 @@ CREATE TRIGGER enforce_country_quota
   BEFORE INSERT ON registrations
   FOR EACH ROW
   EXECUTE FUNCTION check_country_quota();
-
-
--- ── 4. COUNTRY QUOTAS ───────────────────────────────────────
-CREATE TABLE country_quotas (
-  id            UUID  PRIMARY KEY DEFAULT gen_random_uuid(),
-  country_code  TEXT  UNIQUE NOT NULL,        -- e.g. 'DE', 'US', 'IN'
-  max_members   INT   NOT NULL CHECK (max_members > 0),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- Seed with initial quotas (update numbers as needed)
-INSERT INTO country_quotas (country_code, max_members) VALUES
-  ('DE', 100),
-  ('AT', 50),
-  ('CH', 50),
-  ('GB', 30),
-  ('US', 20),
-  ('IN', 30),
-  ('NZ', 20);
