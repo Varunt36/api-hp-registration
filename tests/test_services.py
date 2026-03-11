@@ -321,21 +321,34 @@ class TestCombinedQrEmail:
 
 
 class TestInfoEmails:
-    def test_sends_travel_and_social_emails(self):
+    def test_sends_travel_email(self):
+        """Travel guide email is always sent."""
         with patch("resend.Emails.send") as mock_send:
             from app.services.email_service import send_info_emails
             send_info_emails("john@example.com")
 
-            assert mock_send.call_count == 2
-            subjects = [call.args[0]["subject"] for call in mock_send.call_args_list]
-            assert "Travel Guide - YDS Germany 2026" in subjects
-            assert "Stay Connected - WhatsApp, Instagram & Telegram" in subjects
+            # With no social URLs configured, only travel email is sent
+            assert mock_send.call_count == 1
+            assert "Travel Guide" in mock_send.call_args[0][0]["subject"]
 
-    def test_social_email_mentions_telegram(self):
-        with patch("resend.Emails.send") as mock_send:
-            from app.services.email_service import send_info_emails
-            send_info_emails("john@example.com")
+    def test_social_email_sent_when_urls_configured(self):
+        """Social email is sent when at least one platform URL is configured."""
+        with patch("resend.Emails.send") as mock_send, \
+             patch("app.services.email_service.settings") as mock_settings:
+            mock_settings.resend_from_email = "test@example.com"
+            mock_settings.email_logo_url = ""
+            mock_settings.whatsapp_group_url = "https://chat.whatsapp.com/test"
+            mock_settings.whatsapp_qr_url = "https://storage.test/wa-qr.png"
+            mock_settings.telegram_group_url = "https://t.me/test"
+            mock_settings.telegram_qr_url = "https://storage.test/tg-qr.png"
+            mock_settings.instagram_url = ""
+            mock_settings.youtube_url = ""
 
-            social_email = [c for c in mock_send.call_args_list if "Telegram" in c.args[0]["subject"]][0]
-            assert "Telegram" in social_email.args[0]["html"]
-            assert "WhatsApp" in social_email.args[0]["html"]
+            from app.services.email_service import send_social_email
+            send_social_email("john@example.com")
+
+            assert mock_send.call_count == 1
+            email_html = mock_send.call_args[0][0]["html"]
+            assert "WhatsApp" in email_html
+            assert "Telegram" in email_html
+            assert "chat.whatsapp.com/test" in email_html
