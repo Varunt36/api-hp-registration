@@ -9,6 +9,12 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 resend.api_key = settings.resend_api_key
 
+
+def _mask_email(email: str) -> str:
+    """Mask email for logging: john@example.com → j***@example.com (GDPR compliance)."""
+    local, domain = email.split("@")
+    return f"{local[0]}***@{domain}"
+
 # ── Template loading ──────────────────────────────────────────
 # Templates are loaded once at module level (not on every email send).
 # They live in app/templates/ as plain HTML with {{PLACEHOLDER}} markers.
@@ -62,7 +68,7 @@ def send_combined_qr_email(
     for item in members_qr:
         # HTML-escape names to prevent XSS injection in email
         member_name = html.escape(item["member_name"])
-        ticket_number = item["ticket_number"]
+        ticket_number = html.escape(item["ticket_number"])
         qr_bytes = item["qr_bytes"]
 
         if qr_bytes:
@@ -124,7 +130,7 @@ def send_combined_qr_email(
         email_data["attachments"] = attachments
 
     resend.Emails.send(email_data)
-    logger.info(f"Sent registration email ({len(members_qr)} members) to {to_email}")
+    logger.info(f"Sent registration email ({len(members_qr)} members) to {_mask_email(to_email)}")
 
 
 def send_info_emails(to_email: str):
@@ -161,4 +167,4 @@ def send_info_emails(to_email: str):
         """,
     })
 
-    logger.info(f"Sent info emails (Travel + Social) to {to_email}")
+    logger.info(f"Sent info emails (Travel + Social) to {_mask_email(to_email)}")

@@ -1,10 +1,24 @@
+import re
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr, field_validator, model_validator
 from datetime import date
 from enum import Enum
 
 ALLOWED_COUNTRIES = {"DE", "AT", "CH", "GB", "US", "IN", "NZ"}
-MAX_MEMBERS_PER_REGISTRATION = 10
+MAX_MEMBERS_PER_REGISTRATION = 4
+
+# Regex: optional +, then digits/spaces/dashes/parens, 7-20 chars total
+_PHONE_REGEX = re.compile(r"^\+?[0-9\s\-()]{7,20}$")
+
+# Reject strings containing HTML-like characters (stored XSS prevention)
+_UNSAFE_CHARS = re.compile(r"[<>&]")
+
+
+def _validate_safe_text(value: str, field_name: str) -> str:
+    """Reject text containing HTML/script characters. Defense-in-depth for stored XSS."""
+    if _UNSAFE_CHARS.search(value):
+        raise ValueError(f"{field_name} contains invalid characters")
+    return value
 
 
 class Gender(str, Enum):
@@ -24,24 +38,27 @@ class MemberInput(BaseModel):
     last_name: str
     gender: Gender
     dob: date
-    email: Optional[EmailStr] = None   # Validated as proper email format by Pydantic
+    email: Optional[EmailStr] = None
     phone: Optional[str] = None
 
     @field_validator("first_name", "last_name")
     @classmethod
-    def validate_name_length(cls, v):
+    def validate_name(cls, v):
         v = v.strip()
         if len(v) < 1 or len(v) > 100:
             raise ValueError("Name must be 1-100 characters")
-        return v
+        return _validate_safe_text(v, "Name")
 
     @field_validator("middle_name")
     @classmethod
     def validate_middle_name(cls, v):
         if v is not None:
             v = v.strip()
+            if v == "":
+                return None  # Normalize empty string to None
             if len(v) > 100:
                 raise ValueError("Middle name must be under 100 characters")
+            return _validate_safe_text(v, "Middle name")
         return v
 
     @field_validator("dob")
@@ -58,8 +75,10 @@ class MemberInput(BaseModel):
     def validate_phone(cls, v):
         if v is not None:
             v = v.strip()
-            if len(v) > 20:
-                raise ValueError("Phone number too long")
+            if v == "":
+                return None
+            if not _PHONE_REGEX.match(v):
+                raise ValueError("Phone number must contain only digits, spaces, dashes, and parentheses")
         return v
 
 
@@ -69,11 +88,11 @@ class RegistrationInput(BaseModel):
     Validates:
       - country must be one of the allowed country codes
       - terms_accepted must be true
-      - 1-10 members allowed
+      - 1-4 members allowed
       - first member must have an email (used as primary contact for the group)
     """
     country: str
-    karyakarta: str                    # Group leader / coordinator name
+    karyakarta: str
     terms_accepted: bool
     members: List[MemberInput]
 
@@ -91,7 +110,7 @@ class RegistrationInput(BaseModel):
         v = v.strip()
         if len(v) < 1 or len(v) > 200:
             raise ValueError("Karyakarta name must be 1-200 characters")
-        return v
+        return _validate_safe_text(v, "Karyakarta name")
 
     @field_validator("terms_accepted")
     @classmethod
@@ -120,11 +139,11 @@ class RegistrationInput(BaseModel):
 
 class RegistrationResponse(BaseModel):
     success: bool
-    reference: str          # e.g. "HP-2026-00042"
+    reference: str
     member_count: int
 
 
 class CheckinResponse(BaseModel):
-    ticket_number: str      # e.g. "HP-2026-00042-M1"
+    ticket_number: str
     member_name: str
     checked_in: bool

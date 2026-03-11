@@ -32,11 +32,10 @@ def check_country_quota(country: str, new_member_count: int):
         .execute()
     )
     current_count = sum(row["member_count"] for row in result.data) if result.data else 0
-
-    remaining = max_allowed - current_count
-    if new_member_count > remaining:
+    if current_count + new_member_count > max_allowed:
         raise ValueError(
-            f"Registration limit reached for country {country}. Only {remaining} spots remain."
+            "Jay Swaminarayan, We're sorry, all spots for your country have been filled. "
+            "Registration is now closed. Please contact your reglional Leader for further information."
         )
 
 
@@ -164,7 +163,7 @@ def process_qr_and_emails(registration_id: str, members_data: list, primary_emai
     try:
         send_combined_qr_email(primary_email, all_members_qr, reference=reference)
     except Exception:
-        logger.exception(f"Combined QR email failed for {primary_email}")
+        logger.exception("Combined QR email failed for primary contact")
 
     # ── Step 3: Send individual QR email to other members who have their own email ──
     # Skip primary (they already got all QR codes above)
@@ -173,7 +172,7 @@ def process_qr_and_emails(registration_id: str, members_data: list, primary_emai
             try:
                 send_combined_qr_email(item["email"], [item], reference=reference)
             except Exception:
-                logger.exception(f"QR email failed for {item['email']}")
+                logger.exception("QR email failed for a member")
 
     # ── Step 4: Send info emails (Travel Guide + Social) once per unique email ──
     # Deduplicated: even if primary has 3 members proxied to them,
@@ -182,4 +181,4 @@ def process_qr_and_emails(registration_id: str, members_data: list, primary_emai
         try:
             send_info_emails(email_address)
         except Exception:
-            logger.exception(f"Info emails failed for {email_address}")
+            logger.exception("Info emails failed for a recipient")

@@ -160,8 +160,8 @@ class TestRegistrationValidation:
             "dob": "1990-01-01",
             "email": "test@example.com",
         }
-        members = [member] * 11  # MAX is 10
-        with pytest.raises(ValidationError, match="Maximum 10"):
+        members = [member] * 5  # MAX is 4
+        with pytest.raises(ValidationError, match="Maximum 4"):
             RegistrationInput(**self._base_payload(members=members))
 
     def test_first_member_without_email_rejected(self):

@@ -55,16 +55,22 @@ class TestCreateRegistration:
 
     def test_country_quota_exceeded(self, mock_db):
         tables = setup_db_for_success(mock_db)
+        # Quota: max 5 members for DE
         tables["quotas"].select.return_value.eq.return_value.execute.return_value = MagicMock(
             data=[{"max_members": 5}]
         )
-        mock_db.rpc.return_value.execute.return_value = MagicMock(data=5)
+        # Current paid count: 5 members already registered (quota full)
+        # The quota check now uses a direct query: registrations.select(...).eq(...).eq(...)
+        reg_chain = tables["reg"].select.return_value.eq.return_value.eq.return_value
+        reg_chain.execute.return_value = MagicMock(
+            data=[{"member_count": 5}]
+        )
 
         data = RegistrationInput(**VALID_PAYLOAD)
 
         from app.services.registration_service import create_registration
         import pytest
-        with pytest.raises(ValueError, match="Registration limit reached"):
+        with pytest.raises(ValueError, match="all spots for your country"):
             create_registration(data)
 
 
