@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.core.rate_limiter import RateLimitMiddleware
-from app.routers import registration, admin
+from app.routers import registration, admin, payment
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,6 +40,9 @@ MAX_BODY_SIZE = 64 * 1024  # 64 KB — more than enough for 4 members
 
 class BodySizeLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Exempt webhook endpoints (called by Stripe/PayPal, not user browsers)
+        if request.url.path.startswith("/webhooks/"):
+            return await call_next(request)
         content_length = request.headers.get("content-length")
         if content_length and int(content_length) > MAX_BODY_SIZE:
             return JSONResponse(
@@ -62,6 +65,7 @@ app.add_middleware(
 )
 
 app.include_router(registration.router)
+app.include_router(payment.router)
 app.include_router(admin.router)
 
 

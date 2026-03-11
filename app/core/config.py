@@ -18,6 +18,16 @@ class Settings(BaseSettings):
     telegram_qr_url: str = ""     # Hosted QR code image URL for Telegram group
     instagram_url: str = ""
     youtube_url: str = ""
+    # Payment — Stripe
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    # Payment — PayPal
+    paypal_client_id: str = ""
+    paypal_client_secret: str = ""
+    paypal_webhook_id: str = ""
+    paypal_mode: str = "sandbox"  # "sandbox" or "live"
+    # Pricing
+    payment_amount_per_member: float = 250.00  # EUR per member
 
     class Config:
         env_file = ".env"
