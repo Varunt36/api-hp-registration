@@ -4,10 +4,19 @@
 -- ============================================================
 
 
--- ── 1. REGISTRATIONS ────────────────────────────────────────
+-- ── 1. SEQUENCE FOR REGISTRATIONS ─────────────────────────────
+CREATE SEQUENCE IF NOT EXISTS registrations_seq_seq
+  AS BIGINT
+  START WITH 1
+  INCREMENT BY 1
+  NO MINVALUE
+  NO MAXVALUE
+  CACHE 1;
+
+-- ── 2. REGISTRATIONS ────────────────────────────────────────
 CREATE TABLE registrations (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  seq           BIGSERIAL   UNIQUE NOT NULL,
+  seq           BIGINT      UNIQUE NOT NULL DEFAULT nextval('registrations_seq_seq'),
   reference     TEXT        UNIQUE,           -- e.g. HP-2026-00042 (set by FastAPI)
   country       TEXT        NOT NULL,
   karyakarta    TEXT        NOT NULL,
@@ -16,7 +25,10 @@ CREATE TABLE registrations (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ── 2. MEMBERS ──────────────────────────────────────────────
+-- Link the sequence to the column (auto-drops with the table)
+ALTER SEQUENCE registrations_seq_seq OWNED BY registrations.seq;
+
+-- ── 3. MEMBERS ──────────────────────────────────────────────
 CREATE TABLE members (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   registration_id  UUID        NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
@@ -37,7 +49,7 @@ CREATE TABLE members (
 CREATE INDEX idx_members_registration_id ON members(registration_id);
 
 
--- ── 3. PAYMENTS ─────────────────────────────────────────────
+-- ── 4. PAYMENTS ─────────────────────────────────────────────
 CREATE TABLE payments (
   id               UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
   registration_id  UUID           UNIQUE NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
@@ -55,7 +67,7 @@ CREATE TABLE payments (
 CREATE INDEX idx_payments_status ON payments(status);
 
 
--- ── 4. COUNTRY QUOTAS ───────────────────────────────────────
+-- ── 5. COUNTRY QUOTAS ───────────────────────────────────────
 -- Must be created BEFORE the trigger that references it
 CREATE TABLE country_quotas (
   id            UUID  PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -73,47 +85,3 @@ INSERT INTO country_quotas (country_code, max_members) VALUES
   ('US', 20),
   ('IN', 30),
   ('NZ', 20);
-
-
--- ── 5. COUNTRY QUOTA ENFORCEMENT ────────────────────────────
--- Trigger that runs BEFORE every registration insert.
--- Raises an error if the new group would exceed the country's member quota.
-CREATE OR REPLACE FUNCTION check_country_quota()
-RETURNS TRIGGER AS $$
-DECLARE
-  max_allowed   INT;
-  current_count INT;
-BEGIN
-  -- Get the quota for this country (NULL if no quota set = unlimited)
-  SELECT max_members INTO max_allowed
-  FROM country_quotas
-  WHERE country_code = NEW.country;
-
-  -- No quota row means no limit for this country
-  IF max_allowed IS NULL THEN
-    RETURN NEW;
-  END IF;
-
-  -- Count members already paid from this country
-  SELECT COALESCE(SUM(r.member_count), 0) INTO current_count
-  FROM registrations r
-  JOIN payments p ON p.registration_id = r.id
-  WHERE r.country = NEW.country
-    AND p.status = 'paid';
-
-  -- Reject if adding this group would exceed the limit
-  IF current_count + NEW.member_count > max_allowed THEN
-    RAISE EXCEPTION
-      'Registration limit reached for country %. Only % spots remain.',
-      NEW.country,
-      max_allowed - current_count;
-  END IF;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER enforce_country_quota
-  BEFORE INSERT ON registrations
-  FOR EACH ROW
-  EXECUTE FUNCTION check_country_quota();

@@ -10,7 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.core.exceptions import AppError
 from app.core.rate_limiter import RateLimitMiddleware
-from app.routers import registration, admin, payment
+from app.routers import admin, payment
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -63,7 +63,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["X-XSS-Protection"] = "0"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'"
+        if settings.debug and request.url.path.startswith(("/docs", "/redoc", "/openapi.json")):
+            response.headers["Content-Security-Policy"] = "default-src 'self' https://fastapi.tiangolo.com https://cdn.jsdelivr.net 'unsafe-inline'"
+        else:
+            response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'"
         if not settings.debug:
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
         return response
@@ -96,7 +99,6 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
-app.include_router(registration.router)
 app.include_router(payment.router)
 app.include_router(admin.router)
 
