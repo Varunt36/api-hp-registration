@@ -134,21 +134,11 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
     logger.info(f"Sent registration email ({len(members_qr)} members) to {_mask_email(to_email)}")
 
 
-def send_travel_email(to_email: str):
-    """Send Travel Guide email."""
-    resend.Emails.send({
-        "from": settings.resend_from_email,
-        "to": [to_email],
-        "subject": "Travel Guide - YDS Germany 2026",
-        "html": "<h2>Travel Guide</h2><p>Please find the travel guide details below.</p>",
-    })
-    logger.info(f"Sent travel email to {_mask_email(to_email)}")
+def send_community_email(to_email: str):
+    """Send combined travel guide + social links email."""
+    to_email = _sanitize_email(to_email)
 
-
-def send_social_email(to_email: str):
-    """Send social group links (WhatsApp, Telegram, etc.) email."""
     social_sections = []
-
     for platform in _SOCIAL_PLATFORMS:
         url = getattr(settings, platform["url_key"], "")
         if not url:
@@ -160,12 +150,14 @@ def send_social_email(to_email: str):
             button_text=platform["button"], qr_image_url=qr_url,
         ))
 
-    if not social_sections:
-        logger.warning("No social platforms configured — skipping social email")
-        return
+    travel_content = (
+        "Details about travel, accommodation, and venue logistics will be shared here soon. "
+        "Stay tuned for updates!"
+    )
 
     email_html = _SOCIAL_TEMPLATE
     email_html = email_html.replace("{{LOGO_URL}}", settings.email_logo_url)
+    email_html = email_html.replace("{{TRAVEL_CONTENT}}", travel_content)
 
     slot_names = ["WHATSAPP_SECTION", "TELEGRAM_SECTION", "INSTAGRAM_SECTION", "YOUTUBE_SECTION"]
     for i, slot in enumerate(slot_names):
@@ -174,7 +166,7 @@ def send_social_email(to_email: str):
     resend.Emails.send({
         "from": settings.resend_from_email,
         "to": [to_email],
-        "subject": "Stay Connected - YDS Germany 2026",
+        "subject": "Travel & Community - YDS Germany 2026",
         "html": email_html,
     })
-    logger.info(f"Sent social email to {_mask_email(to_email)}")
+    logger.info(f"Sent community email to {_mask_email(to_email)}")

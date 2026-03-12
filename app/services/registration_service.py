@@ -3,7 +3,7 @@ import logging
 from app.core.exceptions import DuplicateMemberError, QuotaExceededError, RegistrationInsertError
 from app.core.supabase import supabase
 from app.models.registration import RegistrationInput
-from app.services.email_service import send_combined_qr_email, send_travel_email, send_social_email
+from app.services.email_service import send_combined_qr_email, send_community_email
 from app.services.qr_service import generate_qr_image
 
 logger = logging.getLogger(__name__)
@@ -144,12 +144,6 @@ def process_qr_and_emails(registration_id: str, members_data: list, primary_emai
     # Travel guide + social links — once per unique email
     for email_address in unique_emails:
         try:
-            send_travel_email(email_address)
+            send_community_email(email_address)
         except Exception:
-            logger.exception(f"Travel email failed ({reference})")
-
-    for email_address in unique_emails:
-        try:
-            send_social_email(email_address)
-        except Exception:
-            logger.exception(f"Social email failed ({reference})")
+            logger.exception(f"Community email failed ({reference})")
