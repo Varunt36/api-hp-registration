@@ -90,7 +90,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(BodySizeLimitMiddleware)
-app.add_middleware(RateLimitMiddleware, max_requests=5, window_seconds=60)
+app.add_middleware(RateLimitMiddleware, max_requests=20, window_seconds=60)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_url],
