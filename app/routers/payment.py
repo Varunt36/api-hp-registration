@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Request
 from app.core.config import settings
 from app.core.exceptions import PaymentConfigError, WebhookVerificationError
 from app.models.payment import CreatePaymentRequest, CreatePaymentResponse
-from app.services.registration_service import check_country_quota, check_duplicate_member
+from app.services.registration_service import check_country_quota
 from app.services.payment_service import create_stripe_session, verify_stripe_event, complete_payment
 
 logger = logging.getLogger(__name__)
@@ -15,9 +15,6 @@ router = APIRouter()
 @router.post("/create-payment", response_model=CreatePaymentResponse)
 def create_payment(data: CreatePaymentRequest):
     check_country_quota(data.country, len(data.members))
-
-    if data.members[0].email:
-        check_duplicate_member(data.members[0].email)
 
     if not settings.stripe_secret_key:
         raise PaymentConfigError()

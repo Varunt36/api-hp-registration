@@ -1,6 +1,6 @@
 import logging
 
-from app.core.exceptions import DuplicateMemberError, QuotaExceededError, RegistrationInsertError
+from app.core.exceptions import QuotaExceededError, RegistrationInsertError
 from app.core.supabase import supabase
 from app.models.registration import RegistrationInput
 from app.services.email_service import send_combined_qr_email, send_community_email
@@ -29,30 +29,8 @@ def check_country_quota(country: str, new_member_count: int):
         raise QuotaExceededError(country)
 
 
-def check_duplicate_member(email: str):
-    """Raise DuplicateMemberError if this email already has a paid registration."""
-    members = supabase.table("members").select("registration_id").eq("email", email).execute()
-    if not members.data:
-        return
-
-    reg_ids = [m["registration_id"] for m in members.data]
-    payments = (
-        supabase.table("payments")
-        .select("id")
-        .in_("registration_id", reg_ids)
-        .eq("status", "paid")
-        .limit(1)
-        .execute()
-    )
-    if payments.data:
-        raise DuplicateMemberError(email)
-
-
 def create_registration(data: RegistrationInput) -> dict:
     """Insert registration + members into DB. Returns data for QR/email processing."""
-    if data.members[0].email:
-        check_duplicate_member(data.members[0].email)
-
     try:
         reg_result = supabase.table("registrations").insert({
             "country": data.country,

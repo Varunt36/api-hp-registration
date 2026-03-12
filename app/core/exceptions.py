@@ -16,14 +16,6 @@ class QuotaExceededError(AppError):
         )
 
 
-class DuplicateMemberError(AppError):
-    def __init__(self, email: str):
-        super().__init__(
-            "A member with this email is already registered.",
-            code="DUPLICATE_MEMBER",
-            status_code=409,
-        )
-
 
 class PaymentError(AppError):
     def __init__(self, message: str = "Payment processing failed. Please try again."):
