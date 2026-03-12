@@ -1,9 +1,12 @@
+import logging
 import time
 from typing import Dict, List
 from collections import defaultdict
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+
+logger = logging.getLogger(__name__)
 
 # Module-level dict tracking timestamps of recent requests per IP.
 # Stored at module level (not instance level) so tests can import and clear it.
@@ -14,12 +17,22 @@ _MAX_TRACKED_IPS = 10000
 
 
 def _get_client_ip(request: Request) -> str:
-    """Extract real client IP, respecting X-Forwarded-For behind a reverse proxy."""
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        # X-Forwarded-For: client, proxy1, proxy2 — first IP is the real client
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    """Extract client IP. Only trusts X-Forwarded-For from known reverse proxies.
+
+    IMPORTANT: Trusting X-Forwarded-For from all clients allows rate limit bypass.
+    Only use it when the request comes from a trusted proxy (load balancer, nginx, etc.).
+    """
+    client_host = request.client.host if request.client else "unknown"
+
+    # Only trust X-Forwarded-For if request comes from localhost/Docker (reverse proxy)
+    # In production, replace with your actual proxy IPs
+    trusted_proxies = {"127.0.0.1", "::1", "172.17.0.1", "10.0.0.1"}
+    if client_host in trusted_proxies:
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+
+    return client_host
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -57,6 +70,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             ]
 
             if len(_request_log[client_ip]) >= self.max_requests:
+                logger.warning(f"Rate limit exceeded: ip={client_ip}, path={request.url.path}")
                 return JSONResponse(
                     status_code=429,
                     content={"detail": "Too many requests. Please try again later."},

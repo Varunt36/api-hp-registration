@@ -16,6 +16,18 @@ def _mask_email(email: str) -> str:
     return f"{local[0]}***@{domain}"
 
 
+def _sanitize_email(email: str) -> str:
+    """Reject emails with newline/null chars to prevent email header injection."""
+    if any(c in email for c in ("\r", "\n", "\0")):
+        raise ValueError("Invalid email address")
+    return email.strip()
+
+
+def _sanitize_text(text: str) -> str:
+    """Strip newline/null chars from text used in email subjects or headers."""
+    return text.replace("\r", "").replace("\n", "").replace("\0", "").strip()
+
+
 # ── Template loading ──────────────────────────────────────────
 # Loaded once at module level. Plain HTML with {{PLACEHOLDER}} markers.
 _TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "..", "templates")
@@ -127,12 +139,15 @@ def send_combined_qr_email(
     Other members receive only their own QR code.
     QR images are embedded inline using CID (Content-ID) references.
     """
+    to_email = _sanitize_email(to_email)
+    reference = _sanitize_text(reference)
+
     member_cards = []
     attachments = []
 
     for item in members_qr:
-        member_name = html.escape(item["member_name"])
-        ticket_number = html.escape(item["ticket_number"])
+        member_name = html.escape(_sanitize_text(item["member_name"]))
+        ticket_number = html.escape(_sanitize_text(item["ticket_number"]))
         qr_bytes = item["qr_bytes"]
 
         if qr_bytes:

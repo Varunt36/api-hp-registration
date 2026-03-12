@@ -73,11 +73,26 @@ def complete_payment(session: dict):
     session_id = session.get("id", "unknown")
     amount = float(metadata.get("amount", 0))
 
+    # ── Idempotency guard: skip if this transaction was already processed ──
+    # Prevents duplicate registrations if Stripe retries the webhook.
+    existing = (
+        supabase.table("payments")
+        .select("id")
+        .eq("transaction_id", transaction_id)
+        .execute()
+    )
+    if existing.data:
+        logger.info(f"Webhook already processed for txn={transaction_id}, skipping")
+        return
+
     # ── Step 1: Reconstruct registration data from metadata ──
     try:
         data = _reconstruct_registration(metadata)
     except Exception:
-        logger.exception(f"Failed to reconstruct registration from Stripe metadata, session={session_id}, metadata={metadata}")
+        logger.exception(
+            f"Failed to reconstruct registration from Stripe metadata, "
+            f"session={session_id}, country={metadata.get('country')}, members={metadata.get('member_count')}"
+        )
         return
 
     # ── Step 2: Re-check country quota (prevents race condition) ──
