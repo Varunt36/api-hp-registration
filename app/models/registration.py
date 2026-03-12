@@ -137,12 +137,6 @@ class RegistrationInput(BaseModel):
         return self
 
 
-class RegistrationResponse(BaseModel):
-    success: bool
-    reference: str
-    member_count: int
-
-
 class CheckinResponse(BaseModel):
     ticket_number: str
     member_name: str

@@ -10,7 +10,6 @@ from app.services.registration_service import check_country_quota, create_regist
 
 logger = logging.getLogger(__name__)
 
-
 # ── Stripe session creation ───────────────────────────────────
 
 def create_stripe_session(data: RegistrationInput, amount: float) -> str:

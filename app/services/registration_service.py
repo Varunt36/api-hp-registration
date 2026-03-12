@@ -17,7 +17,10 @@ def check_country_quota(country: str, new_member_count: int):
     quota_result = supabase.table("country_quotas").select("max_members").eq("country_code", country).execute()
 
     if not quota_result.data:
-        return  # no quota row = unlimited registrations for this country
+        raise ValueError(
+            "Jay Swaminarayan, We're sorry, all spots for your country have been filled. "
+            "Registration is now closed. Please contact your regional Leader for further information."
+        )
 
     max_allowed = quota_result.data[0]["max_members"]
 
