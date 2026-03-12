@@ -1,21 +1,24 @@
 import io
-import base64
+import logging
 import qrcode
 
+logger = logging.getLogger(__name__)
 
-def generate_qr_base64(data: str) -> str:
-    """Generate a QR code and return it as a base64-encoded PNG string."""
-    qr = qrcode.make(data)
+
+def generate_qr_image(ticket_number: str) -> bytes:
+    """Generate a QR code PNG in memory.
+
+    The QR code encodes the ticket number (e.g. "HP-2026-00042-M1").
+    At check-in, scanning this QR returns the ticket number to look up the member.
+
+    Returns:
+        Raw PNG bytes (embedded inline in the registration email via CID).
+    """
+    qr = qrcode.make(ticket_number)
     buffer = io.BytesIO()
     qr.save(buffer, format="PNG")
     buffer.seek(0)
-    return base64.b64encode(buffer.read()).decode("utf-8")
+    qr_bytes = buffer.read()
 
-
-def generate_qr_bytes(data: str) -> bytes:
-    """Generate a QR code and return raw PNG bytes (for email attachment)."""
-    qr = qrcode.make(data)
-    buffer = io.BytesIO()
-    qr.save(buffer, format="PNG")
-    buffer.seek(0)
-    return buffer.read()
+    logger.info(f"QR generated for {ticket_number}")
+    return qr_bytes
