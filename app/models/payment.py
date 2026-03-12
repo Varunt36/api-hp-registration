@@ -14,5 +14,4 @@ class CreatePaymentRequest(RegistrationInput):
 
 
 class CreatePaymentResponse(BaseModel):
-    reference: str
     payment_url: str

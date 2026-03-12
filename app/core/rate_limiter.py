@@ -42,7 +42,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.window_seconds = window_seconds
 
     async def dispatch(self, request: Request, call_next):
-        if request.url.path == "/register" and request.method == "POST":
+        if request.method == "POST" and request.url.path in ("/register", "/create-payment"):
             client_ip = _get_client_ip(request)
             now = time.time()
 
