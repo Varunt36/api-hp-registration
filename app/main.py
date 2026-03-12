@@ -12,13 +12,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
-# Disable Swagger/ReDoc docs in production to avoid exposing API schema
-app = FastAPI(
-    title="HP Registration API",
-    docs_url="/docs" if settings.debug else None,
-    redoc_url="/redoc" if settings.debug else None,
-    openapi_url="/openapi.json" if settings.debug else None,
-)
+app = FastAPI(title="HP Registration API")
 
 
 # ── Security Headers Middleware ───────────────────────────────
@@ -30,12 +24,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["X-XSS-Protection"] = "0"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        if settings.debug and request.url.path.startswith(("/docs", "/redoc", "/openapi.json")):
-            response.headers["Content-Security-Policy"] = "default-src 'self' https://fastapi.tiangolo.com https://cdn.jsdelivr.net 'unsafe-inline'"
-        else:
-            response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'"
-        if not settings.debug:
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
         return response
 
 
@@ -60,7 +50,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
 # Middleware order matters: outermost runs first
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(BodySizeLimitMiddleware)
-app.add_middleware(RateLimitMiddleware, max_requests=5, window_seconds=60)
+app.add_middleware(RateLimitMiddleware, max_requests=20, window_seconds=60)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_url],
@@ -76,3 +66,7 @@ app.include_router(admin.router)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/")
+def health():
+    return {"status": "Hello from registration backend"}
