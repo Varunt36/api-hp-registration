@@ -7,15 +7,11 @@ from enum import Enum
 ALLOWED_COUNTRIES = {"DE", "AT", "CH", "GB", "US", "IN", "NZ"}
 MAX_MEMBERS_PER_REGISTRATION = 4
 
-# Regex: optional +, then digits/spaces/dashes/parens, 7-20 chars total
 _PHONE_REGEX = re.compile(r"^\+?[0-9\s\-()]{7,20}$")
-
-# Reject strings containing HTML-like characters (stored XSS prevention)
 _UNSAFE_CHARS = re.compile(r"[<>&]")
 
 
 def _validate_safe_text(value: str, field_name: str) -> str:
-    """Reject text containing HTML/script characters. Defense-in-depth for stored XSS."""
     if _UNSAFE_CHARS.search(value):
         raise ValueError(f"{field_name} contains invalid characters")
     return value
@@ -27,12 +23,6 @@ class Gender(str, Enum):
 
 
 class MemberInput(BaseModel):
-    """A single member in a registration group.
-
-    Required: first_name, last_name, gender, dob
-    Optional: middle_name, email, phone
-    Note: The first member in the group MUST have an email (validated at RegistrationInput level).
-    """
     first_name: str
     middle_name: Optional[str] = None
     last_name: str
@@ -40,6 +30,15 @@ class MemberInput(BaseModel):
     dob: date
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_empty_strings(cls, data):
+        if isinstance(data, dict):
+            for field in ("email", "phone", "middle_name"):
+                if data.get(field) is not None and str(data[field]).strip() == "":
+                    data[field] = None
+        return data
 
     @field_validator("first_name", "last_name")
     @classmethod
@@ -55,7 +54,7 @@ class MemberInput(BaseModel):
         if v is not None:
             v = v.strip()
             if v == "":
-                return None  # Normalize empty string to None
+                return None
             if len(v) > 100:
                 raise ValueError("Middle name must be under 100 characters")
             return _validate_safe_text(v, "Middle name")
@@ -83,14 +82,6 @@ class MemberInput(BaseModel):
 
 
 class RegistrationInput(BaseModel):
-    """Full registration payload from the FE.
-
-    Validates:
-      - country must be one of the allowed country codes
-      - terms_accepted must be true
-      - 1-4 members allowed
-      - first member must have an email (used as primary contact for the group)
-    """
     country: str
     karyakarta: str
     terms_accepted: bool
@@ -130,8 +121,6 @@ class RegistrationInput(BaseModel):
 
     @model_validator(mode="after")
     def validate_first_member_email(self):
-        """First member's email is the primary contact for the entire group.
-        All proxy emails (for members without email) go to this address."""
         if self.members and not self.members[0].email:
             raise ValueError("First member must have an email address")
         return self

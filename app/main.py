@@ -1,18 +1,23 @@
 import logging
+import traceback
+
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+
 from app.core.config import settings
+from app.core.exceptions import AppError
 from app.core.rate_limiter import RateLimitMiddleware
 from app.routers import registration, admin, payment
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG if settings.debug else logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+logger = logging.getLogger(__name__)
 
-# Disable Swagger/ReDoc docs in production to avoid exposing API schema
 app = FastAPI(
     title="HP Registration API",
     docs_url="/docs" if settings.debug else None,
@@ -21,7 +26,35 @@ app = FastAPI(
 )
 
 
-# ── Security Headers Middleware ───────────────────────────────
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"code": exc.code, "message": exc.message}},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for err in exc.errors():
+        field = " → ".join(str(loc) for loc in err["loc"] if loc != "body")
+        errors.append({"field": field, "message": err["msg"]})
+    return JSONResponse(
+        status_code=422,
+        content={"error": {"code": "VALIDATION_ERROR", "message": "Invalid input data.", "details": errors}},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_error_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled error on {request.method} {request.url.path}")
+    content = {"error": {"code": "INTERNAL_ERROR", "message": "An unexpected error occurred. Please try again."}}
+    if settings.debug:
+        content["error"]["debug"] = traceback.format_exc()
+    return JSONResponse(status_code=500, content=content)
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
@@ -36,25 +69,22 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-# ── Request Body Size Limit Middleware ────────────────────────
-MAX_BODY_SIZE = 64 * 1024  # 64 KB — more than enough for 4 members
+MAX_BODY_SIZE = 64 * 1024
 
 
 class BodySizeLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Exempt webhook endpoints (called by Stripe/PayPal, not user browsers)
         if request.url.path.startswith("/webhooks/"):
             return await call_next(request)
         content_length = request.headers.get("content-length")
         if content_length and int(content_length) > MAX_BODY_SIZE:
             return JSONResponse(
                 status_code=413,
-                content={"detail": "Request body too large."},
+                content={"error": {"code": "PAYLOAD_TOO_LARGE", "message": "Request body too large."}},
             )
         return await call_next(request)
 
 
-# Middleware order matters: outermost runs first
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RateLimitMiddleware, max_requests=5, window_seconds=60)
