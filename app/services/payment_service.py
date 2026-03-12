@@ -31,7 +31,6 @@ def create_stripe_session(registration_id: str, reference: str, amount: float) -
     """Create a Stripe Checkout Session and return the checkout URL."""
     stripe.api_key = settings.stripe_secret_key
     session = stripe.checkout.Session.create(
-        payment_method_types=["card"],
         line_items=[{
             "price_data": {
                 "currency": "eur",

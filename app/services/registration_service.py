@@ -1,8 +1,7 @@
 import logging
-from collections import defaultdict
 from app.core.supabase import supabase
 from app.models.registration import RegistrationInput
-from app.services.email_service import send_combined_qr_email, send_info_emails
+from app.services.email_service import send_combined_qr_email, send_travel_email, send_social_email
 from app.services.qr_service import generate_qr_image
 
 logger = logging.getLogger(__name__)
@@ -109,41 +108,32 @@ def create_registration(data: RegistrationInput) -> dict:
 
 
 def process_qr_and_emails(registration_id: str, members_data: list, primary_email: str, reference: str = ""):
-    """Background task: generate QR codes, upload to storage, update DB, send emails.
+    """Generate QR codes in memory and send emails after payment succeeds.
 
-    Runs AFTER the API has already responded to the user (via FastAPI BackgroundTasks).
-    This keeps the API response fast — user doesn't wait for QR generation or email delivery.
+    Called by the webhook handler (or background task) after payment is confirmed.
+
+    Emails sent (2 per unique email):
+      1. Registration confirmation with QR codes
+      2. Travel Guide
 
     Email distribution logic:
-      - Primary email (the main registering member) receives ALL members' QR codes
-        in a single combined email, so they have everyone's check-in QR.
-      - Other members who have their own email receive ONLY their own QR code.
-      - Travel Guide and Social (WhatsApp/Instagram/Telegram) emails are sent
-        once per unique email address (no duplicates).
-
-    Example with 3 members: M1=john@, M2=no email, M3=bob@
-      john@ receives: 1 email with M1+M2+M3 QR codes, Travel Guide, Social = 3 emails
-      bob@  receives: 1 email with M3 QR code, Travel Guide, Social        = 3 emails
-      Total: 6 emails
+      - Primary email receives ALL members' QR codes in one email.
+      - Other members with their own email receive only their own QR code.
+      - Travel Guide sent once per unique email (deduplicated).
     """
 
-    # ── Step 1: Generate QR code for every member ──
-    # Each QR encodes the ticket number (e.g. "HP-2026-00042-M1").
-    # The PNG is uploaded to Supabase Storage, and the public URL is saved in the members table.
+    # ── Step 1: Generate QR code for every member (in memory only, no Supabase upload) ──
     all_members_qr = []
     unique_emails = set()
 
     for member_data in members_data:
         ticket_number = member_data["ticket_number"]
 
-        # QR generation can fail (e.g. storage down) — we catch it and continue
-        # so that emails are still sent (with a fallback message instead of QR image)
         qr_bytes = None
         try:
-            qr_bytes, qr_url = generate_qr_image(ticket_number)
-            supabase.table("members").update({"qr_url": qr_url}).eq("ticket_number", ticket_number).execute()
+            qr_bytes = generate_qr_image(ticket_number)
         except Exception:
-            logger.exception(f"QR generation/upload failed for {ticket_number}")
+            logger.exception(f"QR generation failed for {ticket_number}")
 
         member_name = f"{member_data['first_name']} {member_data['last_name']}"
         member_email = member_data.get("email")
@@ -155,18 +145,15 @@ def process_qr_and_emails(registration_id: str, members_data: list, primary_emai
             "email": member_email,
         })
 
-        # Resolve email: use member's own email, or fall back to primary
         unique_emails.add(member_email or primary_email)
 
-    # ── Step 2: Send combined QR email to primary (main registering member) ──
-    # Primary always gets ALL QR codes so they can check in the whole group
+    # ── Step 2: Send combined QR email to primary (all members' QR codes) ──
     try:
         send_combined_qr_email(primary_email, all_members_qr, reference=reference)
     except Exception:
         logger.exception("Combined QR email failed for primary contact")
 
-    # ── Step 3: Send individual QR email to other members who have their own email ──
-    # Skip primary (they already got all QR codes above)
+    # ── Step 3: Send individual QR email to other members with their own email ──
     for item in all_members_qr:
         if item["email"] and item["email"] != primary_email:
             try:
@@ -174,11 +161,16 @@ def process_qr_and_emails(registration_id: str, members_data: list, primary_emai
             except Exception:
                 logger.exception("QR email failed for a member")
 
-    # ── Step 4: Send info emails (Travel Guide + Social) once per unique email ──
-    # Deduplicated: even if primary has 3 members proxied to them,
-    # they only get 1 Travel Guide email and 1 Social email
+    # ── Step 4: Send Travel Guide once per unique email ──
     for email_address in unique_emails:
         try:
-            send_info_emails(email_address)
+            send_travel_email(email_address)
         except Exception:
-            logger.exception("Info emails failed for a recipient")
+            logger.exception("Travel email failed for a recipient")
+
+    # ── Step 5: Send Social email (WhatsApp, Telegram, etc.) once per unique email ──
+    for email_address in unique_emails:
+        try:
+            send_social_email(email_address)
+        except Exception:
+            logger.exception("Social email failed for a recipient")
