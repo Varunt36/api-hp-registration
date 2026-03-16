@@ -56,7 +56,7 @@ app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RateLimitMiddleware, max_requests=20, window_seconds=60)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url],
+    allow_origins=[origin.strip() for origin in settings.frontend_url.split(",")],
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
