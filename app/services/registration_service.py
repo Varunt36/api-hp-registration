@@ -29,8 +29,12 @@ def check_country_quota(country: str, new_member_count: int):
         raise QuotaExceededError(country)
 
 
-def create_registration(data: RegistrationInput) -> dict:
-    """Insert registration + members into DB. Returns data for QR/email processing."""
+def allocate_reference(data: RegistrationInput) -> dict:
+    """Pre-allocate a registration row to reserve a reference number.
+
+    Called at payment creation time so the reference can be returned to the frontend
+    and included in the Stripe success URL.
+    """
     try:
         reg_result = supabase.table("registrations").insert({
             "country": data.country,
@@ -39,7 +43,7 @@ def create_registration(data: RegistrationInput) -> dict:
             "terms_accepted": data.terms_accepted,
         }).execute()
     except Exception:
-        logger.exception("Failed to insert registration row")
+        logger.exception("Failed to allocate registration")
         raise RegistrationInsertError()
 
     registration_id = reg_result.data[0]["id"]
@@ -47,8 +51,12 @@ def create_registration(data: RegistrationInput) -> dict:
     reference = f"HP-2026-{seq:05d}"
 
     supabase.table("registrations").update({"reference": reference}).eq("id", registration_id).execute()
-    logger.info(f"Registration created: {reference} ({data.country}, {len(data.members)} members)")
+    logger.info(f"Registration allocated: {reference} ({data.country}, {len(data.members)} members)")
+    return {"registration_id": registration_id, "reference": reference}
 
+
+def insert_registration_members(registration_id: str, reference: str, data: RegistrationInput) -> dict:
+    """Insert members for a pre-allocated registration. Returns data for QR/email processing."""
     members_data = []
     for index, member in enumerate(data.members, start=1):
         ticket_number = f"{reference}-M{index}"

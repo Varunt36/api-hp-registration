@@ -23,11 +23,13 @@ class TestCreatePaymentEndpoint:
         quotas_table.select.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
         members_table.select.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
 
-        with patch("app.routers.payment.create_stripe_session", return_value="https://checkout.stripe.com/test"):
+        with patch("app.routers.payment.allocate_reference", return_value={"registration_id": "test-id", "reference": "HP-2026-00001"}), \
+             patch("app.routers.payment.create_stripe_session", return_value="https://checkout.stripe.com/test"):
             response = client.post("/create-payment", json=_payment_payload())
 
         assert response.status_code == 200
         assert response.json()["payment_url"] == "https://checkout.stripe.com/test"
+        assert response.json()["reference"] == "HP-2026-00001"
 
     def test_invalid_country_returns_422(self, client):
         payload = _payment_payload({**VALID_PAYLOAD, "country": "ZZ"})

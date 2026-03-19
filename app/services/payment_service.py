@@ -7,15 +7,16 @@ from app.core.config import settings
 from app.core.exceptions import PaymentError
 from app.core.supabase import supabase
 from app.models.registration import RegistrationInput, MemberInput
-from app.services.registration_service import check_country_quota, create_registration, process_qr_and_emails
+from app.services.registration_service import check_country_quota, insert_registration_members, process_qr_and_emails
 
 logger = logging.getLogger(__name__)
 
 
-def create_stripe_session(data: RegistrationInput, amount: float) -> str:
+def create_stripe_session(data: RegistrationInput, amount: float, reference: str) -> str:
     """Create Stripe Checkout Session. Registration data is stored in Stripe metadata."""
     stripe.api_key = settings.stripe_secret_key
     metadata = _build_metadata(data, amount)
+    metadata["reference"] = reference
     member_label = f"{len(data.members)} member{'s' if len(data.members) > 1 else ''}"
 
     try:
@@ -29,7 +30,7 @@ def create_stripe_session(data: RegistrationInput, amount: float) -> str:
                 "quantity": 1,
             }],
             mode="payment",
-            success_url=f"{settings.frontend_url}/payment/success",
+            success_url=f"{settings.frontend_url}/payment/success?ref={reference}",
             cancel_url=f"{settings.frontend_url}/payment/cancel",
             metadata=metadata,
         )
@@ -37,7 +38,7 @@ def create_stripe_session(data: RegistrationInput, amount: float) -> str:
         logger.exception(f"Stripe session creation failed: {e}")
         raise PaymentError("Payment session could not be created. Please try again.")
 
-    logger.info(f"Stripe session created: {data.country}, {member_label}, EUR {amount:.2f}")
+    logger.info(f"Stripe session created: {reference}, {data.country}, {member_label}, EUR {amount:.2f}")
     return session.url
 
 
@@ -72,7 +73,8 @@ def complete_payment(session: dict):
         logger.exception(f"[FAIL] Metadata reconstruction: {log_ctx}")
         return
 
-    log_ctx = f"{log_ctx}, country={data.country}, members={len(data.members)}"
+    reference = metadata.get("reference")
+    log_ctx = f"{log_ctx}, country={data.country}, members={len(data.members)}, ref={reference}"
 
     # Re-check quota (prevents race condition)
     try:
@@ -81,16 +83,19 @@ def complete_payment(session: dict):
         logger.warning(f"[FAIL] Quota exceeded at payment time: {log_ctx} — MANUAL REFUND NEEDED")
         return
 
-    # Insert registration + members
-    try:
-        result = create_registration(data)
-    except Exception:
-        logger.exception(f"[FAIL] DB insert: {log_ctx} — MANUAL RECOVERY NEEDED")
+    # Look up the pre-allocated registration by reference
+    reg_lookup = supabase.table("registrations").select("id").eq("reference", reference).execute()
+    if not reg_lookup.data:
+        logger.error(f"[FAIL] Pre-allocated registration not found: {log_ctx} — MANUAL RECOVERY NEEDED")
         return
+    registration_id = reg_lookup.data[0]["id"]
 
-    registration_id = result["registration_id"]
-    reference = result["reference"]
-    log_ctx = f"{log_ctx}, ref={reference}"
+    # Insert members for the pre-allocated registration
+    try:
+        result = insert_registration_members(registration_id, reference, data)
+    except Exception:
+        logger.exception(f"[FAIL] Member insert: {log_ctx} — MANUAL RECOVERY NEEDED")
+        return
 
     # Insert payment record
     try:
@@ -121,6 +126,35 @@ def complete_payment(session: dict):
             supabase.table("payments").update({"emails_sent": False}).eq("registration_id", registration_id).execute()
         except Exception:
             logger.exception(f"[FAIL] Could not update emails_sent flag: {log_ctx}")
+
+
+def get_payment_status(session_id: str) -> dict:
+    """Look up payment reference by Stripe session ID."""
+    stripe.api_key = settings.stripe_secret_key
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except stripe.StripeError:
+        logger.warning(f"Stripe session not found: {session_id}")
+        return {"status": "not_found"}
+
+    if session.payment_status != "paid":
+        return {"status": "pending"}
+
+    transaction_id = session.payment_intent or session.id
+
+    payment = (
+        supabase.table("payments")
+        .select("registration_id, registrations(reference)")
+        .eq("transaction_id", transaction_id)
+        .execute()
+    )
+
+    if not payment.data:
+        return {"status": "processing"}
+
+    reference = payment.data[0].get("registrations", {}).get("reference")
+    return {"status": "paid", "reference": reference}
 
 
 def _build_metadata(data: RegistrationInput, amount: float) -> dict:
