@@ -10,7 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.core.exceptions import AppError
 from app.core.rate_limiter import RateLimitMiddleware
-from app.routers import admin, payment
+from app.routers import payment
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -92,15 +92,13 @@ app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RateLimitMiddleware, max_requests=20, window_seconds=60)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url],
+    allow_origins=[url.strip() for url in settings.frontend_url.split(",")],
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
 app.include_router(payment.router)
-app.include_router(admin.router)
-
 
 @app.get("/health")
 def health():

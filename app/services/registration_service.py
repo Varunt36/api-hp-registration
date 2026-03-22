@@ -64,7 +64,6 @@ def insert_registration_members(registration_id: str, reference: str, data: Regi
             "registration_id": registration_id,
             "ticket_number": ticket_number,
             "first_name": member.first_name,
-            "middle_name": member.middle_name,
             "last_name": member.last_name,
             "gender": member.gender.value,
             "dob": str(member.dob),

@@ -24,7 +24,6 @@ class Gender(str, Enum):
 
 class MemberInput(BaseModel):
     first_name: str
-    middle_name: Optional[str] = None
     last_name: str
     gender: Gender
     dob: date
@@ -35,7 +34,7 @@ class MemberInput(BaseModel):
     @classmethod
     def normalize_empty_strings(cls, data):
         if isinstance(data, dict):
-            for field in ("email", "phone", "middle_name"):
+            for field in ("email", "phone"):
                 if data.get(field) is not None and str(data[field]).strip() == "":
                     data[field] = None
         return data
@@ -47,18 +46,6 @@ class MemberInput(BaseModel):
         if len(v) < 1 or len(v) > 100:
             raise ValueError("Name must be 1-100 characters")
         return _validate_safe_text(v, "Name")
-
-    @field_validator("middle_name")
-    @classmethod
-    def validate_middle_name(cls, v):
-        if v is not None:
-            v = v.strip()
-            if v == "":
-                return None
-            if len(v) > 100:
-                raise ValueError("Middle name must be under 100 characters")
-            return _validate_safe_text(v, "Middle name")
-        return v
 
     @field_validator("dob")
     @classmethod
@@ -125,8 +112,3 @@ class RegistrationInput(BaseModel):
             raise ValueError("First member must have an email address")
         return self
 
-
-class CheckinResponse(BaseModel):
-    ticket_number: str
-    member_name: str
-    checked_in: bool

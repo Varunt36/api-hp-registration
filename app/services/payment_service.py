@@ -167,7 +167,6 @@ def _build_metadata(data: RegistrationInput, amount: float) -> dict:
     }
     for i, member in enumerate(data.members, 1):
         metadata[f"m{i}_first"] = member.first_name
-        metadata[f"m{i}_middle"] = member.middle_name or ""
         metadata[f"m{i}_last"] = member.last_name
         metadata[f"m{i}_gender"] = member.gender.value
         metadata[f"m{i}_dob"] = str(member.dob)
@@ -183,7 +182,6 @@ def _reconstruct_registration(metadata: dict) -> RegistrationInput:
     for i in range(1, member_count + 1):
         members.append(MemberInput(
             first_name=metadata[f"m{i}_first"],
-            middle_name=metadata.get(f"m{i}_middle") or None,
             last_name=metadata[f"m{i}_last"],
             gender=metadata[f"m{i}_gender"],
             dob=metadata[f"m{i}_dob"],

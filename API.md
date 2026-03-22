@@ -34,7 +34,6 @@ Register a group with one or more members. Generates QR codes and sends 3 emails
     },
     {
       "first_name": "Jane",
-      "middle_name": "Marie",
       "last_name": "Doe",
       "gender": "female",
       "dob": "1992-08-20"
@@ -58,7 +57,6 @@ Register a group with one or more members. Generates QR codes and sends 3 emails
 | `karyakarta` | string | Yes | Group leader / coordinator name |
 | `members` | array | Yes | At least 1 member |
 | `members[].first_name` | string | Yes | |
-| `members[].middle_name` | string | No | |
 | `members[].last_name` | string | Yes | |
 | `members[].gender` | string | Yes | `"male"` or `"female"` |
 | `members[].dob` | string | Yes | Date format: `YYYY-MM-DD` |

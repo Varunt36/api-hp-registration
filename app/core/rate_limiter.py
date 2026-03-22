@@ -11,17 +11,14 @@ logger = logging.getLogger(__name__)
 _request_log = defaultdict(list)
 _MAX_TRACKED_IPS = 10000
 
-TRUSTED_PROXIES = {"127.0.0.1", "::1", "172.17.0.1", "10.0.0.1"}
 RATE_LIMITED_PATHS = {"/register", "/create-payment"}
 
 
 def _get_client_ip(request: Request) -> str:
-    client_host = request.client.host if request.client else "unknown"
-    if client_host in TRUSTED_PROXIES:
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-    return client_host
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
