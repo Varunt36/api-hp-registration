@@ -6,16 +6,15 @@ from app.models.registration import RegistrationInput
 from tests.conftest import VALID_PAYLOAD, setup_db_for_success
 
 
-class TestCreateRegistration:
-    def test_inserts_registration_and_members(self, mock_db):
+class TestAllocateReference:
+    def test_allocates_registration_and_returns_reference(self, mock_db):
         tables = setup_db_for_success(mock_db)
         data = RegistrationInput(**VALID_PAYLOAD)
 
-        from app.services.registration_service import create_registration
-        result = create_registration(data)
+        from app.services.registration_service import allocate_reference
+        result = allocate_reference(data)
 
         assert result["reference"] == "HP-2026-00001"
-        assert result["member_count"] == 1
         assert result["registration_id"] == "test-reg-uuid"
 
         insert_call = tables["reg"].insert.call_args[0][0]
@@ -23,12 +22,25 @@ class TestCreateRegistration:
         assert insert_call["country"] == "DE"
         assert insert_call["terms_accepted"] is True
 
+
+class TestInsertRegistrationMembers:
+    def test_inserts_members(self, mock_db):
+        setup_db_for_success(mock_db)
+        data = RegistrationInput(**VALID_PAYLOAD)
+
+        from app.services.registration_service import insert_registration_members
+        result = insert_registration_members("test-reg-uuid", "HP-2026-00001", data)
+
+        assert result["reference"] == "HP-2026-00001"
+        assert result["member_count"] == 1
+        assert result["registration_id"] == "test-reg-uuid"
+
     def test_member_data_mapping(self, mock_db):
         setup_db_for_success(mock_db)
         data = RegistrationInput(**VALID_PAYLOAD)
 
-        from app.services.registration_service import create_registration
-        result = create_registration(data)
+        from app.services.registration_service import insert_registration_members
+        result = insert_registration_members("test-reg-uuid", "HP-2026-00001", data)
 
         member = result["members_data"][0]
         assert member["ticket_number"] == "HP-2026-00001-M1"
@@ -46,10 +58,11 @@ class TestCreateRegistration:
 
         data = RegistrationInput(**VALID_PAYLOAD)
 
-        from app.services.registration_service import create_registration
+        from app.core.exceptions import RegistrationInsertError
+        from app.services.registration_service import insert_registration_members
         import pytest
-        with pytest.raises(ValueError, match="Registration failed"):
-            create_registration(data)
+        with pytest.raises(RegistrationInsertError, match="Registration failed"):
+            insert_registration_members("test-reg-uuid", "HP-2026-00001", data)
 
         tables["reg"].delete.return_value.eq.assert_called_with("id", "test-reg-uuid")
 
@@ -68,10 +81,11 @@ class TestCreateRegistration:
 
         data = RegistrationInput(**VALID_PAYLOAD)
 
-        from app.services.registration_service import create_registration
+        from app.core.exceptions import QuotaExceededError
+        from app.services.registration_service import check_country_quota
         import pytest
-        with pytest.raises(ValueError, match="all spots for your country"):
-            create_registration(data)
+        with pytest.raises(QuotaExceededError, match="all spots for"):
+            check_country_quota(data.country, len(data.members))
 
 
 class TestProcessQrAndEmails:

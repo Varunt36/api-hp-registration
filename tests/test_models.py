@@ -31,7 +31,6 @@ class TestMemberValidation:
         )
         assert member.email is None
         assert member.phone is None
-        assert member.middle_name is None
 
     def test_invalid_gender_rejected(self):
         with pytest.raises(ValidationError, match="gender"):

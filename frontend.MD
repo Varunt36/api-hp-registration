@@ -26,7 +26,6 @@ POST → members
   {
     "registration_id": "a3f2c1d0-...",
     "first_name": "Amit",
-    "middle_name": "",
     "last_name": "Shah",
     "gender": "male",
     "dob": "1990-05-14",
@@ -36,7 +35,6 @@ POST → members
   {
     "registration_id": "a3f2c1d0-...",
     "first_name": "Priya",
-    "middle_name": "R",
     "last_name": "Shah",
     "gender": "female",
     "dob": "1992-08-22",

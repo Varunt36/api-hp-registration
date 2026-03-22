@@ -34,7 +34,6 @@ CREATE TABLE members (
   registration_id  UUID        NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
   ticket_number    TEXT        UNIQUE,        -- e.g. HP-2026-00042-M1 (set by FastAPI)
   first_name       TEXT        NOT NULL,
-  middle_name      TEXT,
   last_name        TEXT        NOT NULL,
   gender           TEXT        NOT NULL CHECK (gender IN ('male', 'female')),
   dob              DATE        NOT NULL,
