@@ -10,7 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.core.exceptions import AppError
 from app.core.rate_limiter import RateLimitMiddleware
-from app.routers import payment
+from app.routers import admin, payment
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -99,6 +99,7 @@ app.add_middleware(
 )
 
 app.include_router(payment.router)
+app.include_router(admin.router)
 
 @app.get("/health")
 def health():

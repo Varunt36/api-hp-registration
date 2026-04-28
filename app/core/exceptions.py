@@ -44,3 +44,13 @@ class RegistrationInsertError(AppError):
             code="REGISTRATION_FAILED",
             status_code=500,
         )
+
+
+class AdminUnauthorizedError(AppError):
+    def __init__(self, message: str = "Authentication required."):
+        super().__init__(message, code="ADMIN_UNAUTHORIZED", status_code=401)
+
+
+class AdminForbiddenError(AppError):
+    def __init__(self):
+        super().__init__("Admin access required.", code="ADMIN_FORBIDDEN", status_code=403)

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 _request_log = defaultdict(list)
 _MAX_TRACKED_IPS = 10000
 
-RATE_LIMITED_PATHS = {"/register", "/create-payment"}
+RATE_LIMITED_PATHS = {"/register", "/create-payment", "/admin/registration"}
 
 
 def _get_client_ip(request: Request) -> str:

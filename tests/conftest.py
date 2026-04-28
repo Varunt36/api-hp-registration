@@ -25,7 +25,7 @@ from app.core.rate_limiter import _request_log
 @pytest.fixture(autouse=True)
 def reset_state():
     """Reset all mock and rate limiter state before each test."""
-    _mock_supabase.reset_mock()
+    _mock_supabase.reset_mock(return_value=True, side_effect=True)
     _request_log.clear()
     yield
 
