@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     paypal_webhook_id: str = ""
     paypal_mode: str = "sandbox"  # "sandbox" | "live"
 
-    payment_amount_per_member: float = 250.00
+    payment_amount_per_member: float = 290.00
 
     class Config:
         env_file = ".env"

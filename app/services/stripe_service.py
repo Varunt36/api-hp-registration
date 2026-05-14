@@ -25,7 +25,7 @@ def create_stripe_session(intent_id: str, amount: float, reference: str, member_
             line_items=[{
                 "price_data": {
                     "currency": "eur",
-                    "product_data": {"name": f"HP 2026 Registration ({member_label})"},
+                    "product_data": {"name": f"HP Amrut Mahotsav Registration ({member_label})"},
                     "unit_amount": int(amount * 100),
                 },
                 "quantity": 1,

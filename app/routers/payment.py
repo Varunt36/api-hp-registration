@@ -38,6 +38,7 @@ def create_payment(data: CreatePaymentRequest):
     ):
         raise PaymentConfigError()
 
+    # creates registration data without members
     allocation = allocate_reference(data)
     reference = allocation["reference"]
     amount = len(data.members) * settings.payment_amount_per_member
