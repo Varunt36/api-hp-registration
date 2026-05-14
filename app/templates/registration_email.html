@@ -1,158 +1,389 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>YDS Germany 2026 - Registration Confirmed</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HariPrabodham Germany 2026 — Registration Confirmed</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: #f4eef7;
+    color: #2d1b4e;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+
+  .email-wrapper {
+    max-width: 600px;
+    width: 100%;
+    background: #ffffff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(75, 30, 120, 0.10);
+  }
+
+  /* ==========  HEADER (compact)  ========== */
+  .header {
+    background: linear-gradient(135deg, #4a2872 0%, #6b3fa0 100%);
+    padding: 26px 32px 22px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(232, 178, 90, 0.14);
+  }
+  .header .org {
+    position: relative;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 4px;
+  }
+  .header h1 {
+    position: relative;
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.2;
+  }
+  .header .event-date {
+    position: relative;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: #f0b85e;
+    margin-top: 6px;
+    letter-spacing: 1px;
+  }
+
+  /* ==========  GREETING  ========== */
+  .greeting {
+    background: #faf6fd;
+    border-bottom: 1px solid #ede0f5;
+    padding: 18px 32px 16px;
+    text-align: center;
+  }
+  .greeting .slogan {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 20px;
+    font-weight: 600;
+    color: #6b3fa0;
+    letter-spacing: 0.5px;
+    line-height: 1.3;
+  }
+  .greeting .slogan-translate {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: #9c8eb0;
+    margin-top: 4px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ==========  BODY  ========== */
+  .body-content { padding: 32px; }
+
+  .intro {
+    font-size: 14px;
+    line-height: 1.65;
+    color: #5a4a72;
+    text-align: center;
+    margin-bottom: 22px;
+  }
+
+  .confirmed {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .confirmed h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: #4a2872;
+    font-weight: 600;
+  }
+
+  /* ==========  ENTRY PASS (with ref number inside)  ========== */
+  .pass-card {
+    margin: 0 0 16px;
+    border: 2px solid #e6d4f5;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .pass-card-header {
+    background: linear-gradient(135deg, #4a2872, #6b3fa0);
+    padding: 10px 20px;
+    text-align: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #f0b85e;
+    font-weight: 600;
+  }
+  .pass-card-body {
+    padding: 24px 24px 20px;
+    text-align: center;
+    background: linear-gradient(180deg, #faf6fd, #fff);
+  }
+  .pass-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #4a2872;
+    margin-bottom: 14px;
+  }
+  .pass-qr-img {
+    display: block;
+    margin: 0 auto 16px auto;
+    border-radius: 6px;
+  }
+  .pass-ref {
+    display: inline-block;
+    background: #f4eef7;
+    border-radius: 20px;
+    padding: 6px 16px;
+    margin-top: 4px;
+  }
+  .pass-ref .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #9c8eb0;
+    margin-right: 6px;
+  }
+  .pass-ref .value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4a2872;
+    letter-spacing: 0.5px;
+  }
+
+  /* ==========  ORNAMENT DIVIDER  ========== */
+  .ornament {
+    text-align: center;
+    margin: 32px 0 18px;
+    color: #f0b85e;
+    font-size: 12px;
+    letter-spacing: 8px;
+  }
+  .section-title {
+    text-align: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: #4a2872;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+
+  /* ==========  TRAVEL ROW  ========== */
+  .travel-row {
+    display: table;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 8px 0;
+    margin-bottom: 16px;
+  }
+  .travel-cell {
+    display: table-cell;
+    width: 25%;
+    text-align: center;
+    background: #faf6fd;
+    border: 1px solid #ede0f5;
+    border-radius: 10px;
+    padding: 12px 6px;
+    vertical-align: middle;
+  }
+  .travel-cell .icon {
+    font-size: 16px;
+    margin-bottom: 3px;
+  }
+  .travel-cell .label {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4a2872;
+    letter-spacing: 0.3px;
+  }
+
+  .cta-section { text-align: center; margin-top: 14px; }
+  .cta-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, #4a2872, #6b3fa0);
+    color: #fff;
+    text-decoration: none;
+    padding: 11px 28px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    box-shadow: 0 3px 10px rgba(75, 30, 120, 0.22);
+  }
+
+  /* ==========  COMMUNITY  ========== */
+  .community {
+    text-align: center;
+    margin-top: 8px;
+  }
+  .community-text {
+    font-size: 13px;
+    color: #6b5a82;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .community-buttons {
+    font-size: 0; /* removes inline-block whitespace */
+  }
+  .comm-btn {
+    display: inline-block;
+    color: #fff;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin: 4px 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  }
+  .comm-btn.whatsapp { background: #25D366; }
+  .comm-btn.telegram { background: #229ED9; }
+
+  .private-note {
+    font-size: 11px;
+    color: #9c8eb0;
+    font-style: italic;
+    margin-top: 14px;
+    line-height: 1.4;
+  }
+
+  /* ==========  FOOTER (compact)  ========== */
+  .footer {
+    background: #4a2872;
+    padding: 18px 32px;
+    text-align: center;
+  }
+  .footer .contact {
+    font-size: 12px;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 6px;
+  }
+  .footer .contact a {
+    color: #f0b85e;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .footer .copyright {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+  }
+
+  /* ==========  MOBILE  ========== */
+  @media screen and (max-width: 600px) {
+    .body-content, .header, .greeting, .footer { padding-left: 20px; padding-right: 20px; }
+    .header h1 { font-size: 20px; }
+    .travel-cell { padding: 10px 4px; }
+    .travel-cell .label { font-size: 10px; }
+  }
+</style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #3a3a3a; font-family: 'DM Sans', Arial, Helvetica, sans-serif;">
-  <!-- Outer wrapper -->
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #3a3a3a;">
-    <tr>
-      <td align="center" style="padding: 0;">
+<body>
 
-        <!-- Main container (600px max) -->
-        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; width: 100%; background-color: #3a3a3a;">
+<div class="email-wrapper">
 
-          <!-- Hero Banner -->
-          <tr>
-            <td style="padding: 0;">
-              <img
-                src="{{BANNER_URL}}"
-                alt="YDS Germany 2026 - The Journey Has Begun"
-                width="600"
-                style="width: 100%; max-width: 600px; height: auto; display: block; border: 0;"
-              />
-            </td>
-          </tr>
+  <!-- Header (compact) -->
+  <div class="header">
+    <div class="org">HariPrabodham &middot; Amrut Mahotsav</div>
+    <h1>Germany 2026</h1>
+    <div class="event-date">15 &middot; 16 &middot; 17 August &mdash; Berlin</div>
+  </div>
 
-          <!-- Logo -->
-          <tr>
-            <td align="center" style="padding: 30px 0 15px; background-color: #3a3a3a;">
-              <img
-                src="{{LOGO_URL}}"
-                alt="HariPrabodhaM"
-                width="160"
-                style="width: 160px; height: auto; display: block; border: 0;"
-              />
-            </td>
-          </tr>
+  <!-- Slogan -->
+  <div class="greeting">
+    <div class="slogan">Na me rahoo na meri arzoo rahe</div>
+    <div class="slogan-translate">Neither do I exist, nor do my desires</div>
+  </div>
 
-          <!-- Greeting -->
-          <tr>
-            <td align="center" style="padding: 5px 0 25px; background-color: #3a3a3a;">
-              <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #F37C3E;">
-                Jai Swaminarayan
-              </h1>
-            </td>
-          </tr>
+  <!-- Body -->
+  <div class="body-content">
 
-          <!-- Confirmation Header -->
-          <tr>
-            <td align="center" style="padding: 0 30px 10px; background-color: #3a3a3a;">
-              <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #ffffff;">
-                Registration Confirmed!
-              </h2>
-            </td>
-          </tr>
+    <p class="intro">
+      Jai Swaminarayan Das Na Das Banavsoiji. Thank you for registering for HariPrabodham Amrut Mahotsav Germany 2026. We are blessed to welcome you in Berlin.
+    </p>
 
-          <!-- Subtitle -->
-          <tr>
-            <td align="center" style="padding: 0 30px 25px; background-color: #3a3a3a;">
-              <p style="margin: 0; font-size: 15px; color: #cccccc; line-height: 1.5;">
-                Your registration for <strong style="color: #ffffff;">HariPrabodham Germany 2026</strong> has been confirmed.<br />
-                Please show the QR code(s) below at the event for check-in.
-              </p>
-            </td>
-          </tr>
+    <div class="confirmed">
+      <h2>Registration Confirmed</h2>
+    </div>
 
-          <!-- Reference Number -->
-          <tr>
-            <td align="center" style="padding: 0 30px 30px; background-color: #3a3a3a;">
-              <table cellpadding="0" cellspacing="0" border="0" style="background-color: #365288; border-radius: 8px;">
-                <tr>
-                  <td style="padding: 12px 24px;">
-                    <span style="font-size: 13px; color: #b0c4de;">Reference Number</span><br />
-                    <span style="font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: 1px;">{{REFERENCE}}</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+    <!-- Entry Pass cards (one per member, injected dynamically) -->
+    {{MEMBERS_SECTION}}
 
-          <!-- Divider -->
-          <tr>
-            <td style="padding: 0 30px;">
-              <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="border-bottom: 1px solid #555; font-size: 0; line-height: 0;">&nbsp;</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+    <!-- Travel -->
+    <div class="ornament">&#10086; &mdash; &#10086;</div>
+    <div class="section-title">Plan Your Trip</div>
 
-          <!-- Members Section Header -->
-          <tr>
-            <td align="center" style="padding: 25px 30px 15px; background-color: #3a3a3a;">
-              <p style="margin: 0; font-size: 14px; font-weight: 600; color: #999999; text-transform: uppercase; letter-spacing: 2px;">
-                {{MEMBERS_HEADING}}
-              </p>
-            </td>
-          </tr>
+    <div class="travel-row">
+      <div class="travel-cell">
+        <div class="icon">&#127968;</div>
+        <div class="label">Stay</div>
+      </div>
+      <div class="travel-cell">
+        <div class="icon">&#128663;</div>
+        <div class="label">Travel</div>
+      </div>
+      <div class="travel-cell">
+        <div class="icon">&#127757;</div>
+        <div class="label">Explore</div>
+      </div>
+      <div class="travel-cell">
+        <div class="icon">&#128220;</div>
+        <div class="label">Info</div>
+      </div>
+    </div>
 
-          <!-- Member QR Cards (injected dynamically) -->
-          {{MEMBERS_SECTION}}
+    <div class="cta-section">
+      <a href="{{TRAVEL_URL}}" class="cta-btn">Open Travel Guide &rarr;</a>
+    </div>
 
-          <!-- Event Info -->
-          <tr>
-            <td style="padding: 10px 30px 0;">
-              <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="border-bottom: 1px solid #555; font-size: 0; line-height: 0;">&nbsp;</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding: 25px 30px 10px; background-color: #3a3a3a;">
-              <table cellpadding="0" cellspacing="0" border="0" style="background-color: #2d2d2d; border-radius: 8px; width: 100%;">
-                <tr>
-                  <td style="padding: 20px; text-align: center;">
-                    <p style="margin: 0 0 5px; font-size: 16px; font-weight: 600; color: #F37C3E;">
-                      August 16 &ndash; 18, 2026
-                    </p>
-                    <p style="margin: 0; font-size: 14px; color: #cccccc;">
-                      Berlin, Germany
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+    <!-- Community -->
+    <div class="ornament">&#10086; &mdash; &#10086;</div>
+    <div class="section-title">Stay Connected</div>
 
-          <!-- Footer -->
-          <tr>
-            <td align="center" style="padding: 25px 30px 15px; background-color: #3a3a3a;">
-              <p style="margin: 0; font-size: 12px; color: #888888; line-height: 1.6;">
-                This is an automated email. Please do not reply.<br />
-                For questions, contact <a href="mailto:info@yds-germany.de" style="color: #F37C3E; text-decoration: none;">info@yds-germany.de</a>
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding: 0 30px 30px; background-color: #3a3a3a;">
-              <p style="margin: 0; font-size: 11px; color: #666666;">
-                &copy; 2026 Yogi Divine Society Germany. All rights reserved.
-              </p>
-            </td>
-          </tr>
+    <div class="community">
+      <p class="community-text">Join our community channels for event updates and announcements.</p>
+      <div class="community-buttons">
+        <a href="{{WHATSAPP_URL}}" class="comm-btn whatsapp">WhatsApp Group</a>
+        <a href="{{TELEGRAM_URL}}" class="comm-btn telegram">Telegram Channel</a>
+      </div>
+      <p class="private-note">
+        These invite links are private. Please do not share publicly.
+      </p>
+    </div>
 
-        </table>
-        <!-- /Main container -->
+  </div>
 
-      </td>
-    </tr>
-  </table>
-  <!-- /Outer wrapper -->
+  <!-- Footer (compact) -->
+  <div class="footer">
+    <div class="contact">Questions? <a href="mailto:info@yds-germany.de">info@yds-germany.de</a></div>
+    <div class="copyright">&copy; 2026 Yogi Divine Society Germany</div>
+  </div>
+
+</div>
+
 </body>
 </html>

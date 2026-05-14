@@ -14,15 +14,18 @@ resend.api_key = settings.resend_api_key
 _TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "..", "templates")
 
 
-def _load_template(filename: str) -> str:
+def _load(filename: str) -> str:
     with open(os.path.join(_TEMPLATE_DIR, filename), "r", encoding="utf-8") as f:
         return f.read()
 
 
-_REGISTRATION_TEMPLATE = _load_template("registration_email.html")
-_MEMBER_CARD_TEMPLATE = _load_template("member_card.html")
-_SOCIAL_TEMPLATE = _load_template("social_email.html")
-_SOCIAL_CARD_TEMPLATE = _load_template("social_card.html")
+_REGISTRATION_TEMPLATE = _load("registration_email.html")
+_MEMBER_CARD_TEMPLATE = _load("member_card.html")
+
+
+def _clean(text: str) -> str:
+    """Strip newlines/nulls to prevent header injection and stray whitespace."""
+    return text.replace("\r", "").replace("\n", "").replace("\0", "").strip()
 
 
 def _mask_email(email: str) -> str:
@@ -30,143 +33,57 @@ def _mask_email(email: str) -> str:
     return f"{local[0]}***@{domain}"
 
 
-def _sanitize_email(email: str) -> str:
-    if any(c in email for c in ("\r", "\n", "\0")):
-        raise ValueError("Invalid email address")
-    return email.strip()
-
-
-def _sanitize_text(text: str) -> str:
-    return text.replace("\r", "").replace("\n", "").replace("\0", "").strip()
-
-
-def _build_member_card(member_name: str, ticket_number: str, qr_html: str) -> str:
-    card = _MEMBER_CARD_TEMPLATE
-    card = card.replace("{{MEMBER_NAME}}", member_name)
-    card = card.replace("{{TICKET_NUMBER}}", ticket_number)
-    card = card.replace("{{QR_IMAGE}}", qr_html)
-    return card
-
-
-def _build_social_card(
-    platform_name: str,
-    platform_color: str,
-    platform_url: str,
-    description: str,
-    button_text: str,
-    qr_image_url: str = "",
-) -> str:
-    qr_html = ""
-    if qr_image_url:
-        qr_html = (
-            f'<img src="{html.escape(qr_image_url)}" alt="{html.escape(platform_name)} QR" '
-            f'width="180" height="180" style="display: block; margin: 0 auto;" />'
-        )
-
-    card = _SOCIAL_CARD_TEMPLATE
-    card = card.replace("{{PLATFORM_NAME}}", html.escape(platform_name))
-    card = card.replace("{{PLATFORM_COLOR}}", platform_color)
-    card = card.replace("{{PLATFORM_URL}}", html.escape(platform_url))
-    card = card.replace("{{PLATFORM_DESCRIPTION}}", html.escape(description))
-    card = card.replace("{{BUTTON_TEXT}}", html.escape(button_text))
-    card = card.replace("{{QR_IMAGE}}", qr_html)
-    return card
-
-
-_SOCIAL_PLATFORMS = [
-    {"name": "WhatsApp", "color": "#25D366", "url_key": "whatsapp_group_url", "qr_key": "whatsapp_qr_url",
-     "description": "Join our WhatsApp group for event updates and coordination", "button": "Join WhatsApp Group"},
-    {"name": "Telegram", "color": "#0088CC", "url_key": "telegram_group_url", "qr_key": "telegram_qr_url",
-     "description": "Join our Telegram channel for announcements", "button": "Join Telegram Channel"},
-    {"name": "Instagram", "color": "#E4405F", "url_key": "instagram_url", "qr_key": "",
-     "description": "Follow us for photos, reels, and event highlights", "button": "Follow on Instagram"},
-    {"name": "YouTube", "color": "#FF0000", "url_key": "youtube_url", "qr_key": "",
-     "description": "Subscribe for live streams and event videos", "button": "Subscribe on YouTube"},
-]
-
-
 def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str = ""):
-    """Send registration confirmation with QR codes for one or more members."""
-    to_email = _sanitize_email(to_email)
-    reference = _sanitize_text(reference)
+    """Send the single registration confirmation: entry passes + travel + community."""
+    to_email = _clean(to_email)
+    safe_reference = html.escape(_clean(reference))
 
-    member_cards = []
+    cards = []
     attachments = []
 
     for item in members_qr:
-        member_name = html.escape(_sanitize_text(item["member_name"]))
-        ticket_number = html.escape(_sanitize_text(item["ticket_number"]))
-        qr_bytes = item["qr_bytes"]
+        name = html.escape(_clean(item["member_name"]))
+        ticket = _clean(item["ticket_number"])
 
-        if qr_bytes:
-            qr_base64 = base64.b64encode(qr_bytes).decode("utf-8")
-            cid = f"qr-{ticket_number}"
+        if item["qr_bytes"]:
+            cid = f"qr-{ticket}"
             qr_html = (
-                f'<img src="cid:{cid}" alt="QR Code for {ticket_number}" '
-                f'width="200" height="200" style="display: block; margin: 0 auto;" />'
+                f'<img src="cid:{cid}" alt="Entry Pass QR Code" width="150" height="150" '
+                f'style="display:block; margin:0 auto 16px auto; border-radius:6px;" />'
             )
-            attachments.append({"filename": f"qrcode-{ticket_number}.png", "content": qr_base64, "content_id": cid})
+            attachments.append({
+                "filename": f"qrcode-{ticket}.png",
+                "content": base64.b64encode(item["qr_bytes"]).decode("utf-8"),
+                "content_id": cid,
+            })
         else:
-            qr_html = '<p style="margin: 0; color: #999; font-size: 13px; font-style: italic;">QR code will be sent in a follow-up email.</p>'
+            qr_html = (
+                '<p style="margin:0 0 16px; color:#9c8eb0; font-size:12px; '
+                'font-style:italic;">QR code will be sent in a follow-up email.</p>'
+            )
 
-        member_cards.append(_build_member_card(member_name, ticket_number, qr_html))
+        cards.append(
+            _MEMBER_CARD_TEMPLATE
+            .replace("{{MEMBER_NAME}}", name)
+            .replace("{{REFERENCE}}", safe_reference)
+            .replace("{{QR_IMAGE}}", qr_html)
+        )
 
-    members_heading = "Your Ticket" if len(members_qr) == 1 else f"Your Tickets ({len(members_qr)} Members)"
-
-    email_html = _REGISTRATION_TEMPLATE
-    email_html = email_html.replace("{{BANNER_URL}}", settings.email_banner_url)
-    email_html = email_html.replace("{{LOGO_URL}}", settings.email_logo_url)
-    email_html = email_html.replace("{{REFERENCE}}", html.escape(reference))
-    email_html = email_html.replace("{{MEMBERS_HEADING}}", members_heading)
-    email_html = email_html.replace("{{MEMBERS_SECTION}}", "\n".join(member_cards))
-
-    first_member_name = html.escape(members_qr[0]["member_name"])
-    if len(members_qr) == 1:
-        subject = f"YDS Germany 2026 Registration Confirmation - {first_member_name}"
-    else:
-        subject = f"YDS Germany 2026 Registration Confirmation - {first_member_name} (+{len(members_qr) - 1})"
-
-    email_data = {"from": settings.resend_from_email, "to": [to_email], "subject": subject, "html": email_html}
-    if attachments:
-        email_data["attachments"] = attachments
-
-    resend.Emails.send(email_data)
-    logger.info(f"Sent registration email ({len(members_qr)} members) to {_mask_email(to_email)}")
-
-
-def send_community_email(to_email: str):
-    """Send combined travel guide + social links email."""
-    to_email = _sanitize_email(to_email)
-
-    social_sections = []
-    for platform in _SOCIAL_PLATFORMS:
-        url = getattr(settings, platform["url_key"], "")
-        if not url:
-            continue
-        qr_url = getattr(settings, platform["qr_key"], "") if platform["qr_key"] else ""
-        social_sections.append(_build_social_card(
-            platform_name=platform["name"], platform_color=platform["color"],
-            platform_url=url, description=platform["description"],
-            button_text=platform["button"], qr_image_url=qr_url,
-        ))
-
-    travel_content = (
-        "Details about travel, accommodation, and venue logistics will be shared here soon. "
-        "Stay tuned for updates!"
+    body = (
+        _REGISTRATION_TEMPLATE
+        .replace("{{MEMBERS_SECTION}}", "\n".join(cards))
+        .replace("{{TRAVEL_URL}}", html.escape(settings.frontend_url.rstrip("/") + "/explore"))
+        .replace("{{WHATSAPP_URL}}", html.escape(settings.whatsapp_group_url))
+        .replace("{{TELEGRAM_URL}}", html.escape(settings.telegram_group_url))
     )
 
-    email_html = _SOCIAL_TEMPLATE
-    email_html = email_html.replace("{{LOGO_URL}}", settings.email_logo_url)
-    email_html = email_html.replace("{{TRAVEL_CONTENT}}", travel_content)
+    first_name = html.escape(members_qr[0]["member_name"])
+    suffix = "" if len(members_qr) == 1 else f" (+{len(members_qr) - 1})"
+    subject = f"HariPrabodham Germany 2026 Registration Confirmation - {first_name}{suffix}"
 
-    slot_names = ["WHATSAPP_SECTION", "TELEGRAM_SECTION", "INSTAGRAM_SECTION", "YOUTUBE_SECTION"]
-    for i, slot in enumerate(slot_names):
-        email_html = email_html.replace(f"{{{{{slot}}}}}", social_sections[i] if i < len(social_sections) else "")
+    payload = {"from": settings.resend_from_email, "to": [to_email], "subject": subject, "html": body}
+    if attachments:
+        payload["attachments"] = attachments
 
-    resend.Emails.send({
-        "from": settings.resend_from_email,
-        "to": [to_email],
-        "subject": "Travel & Community - YDS Germany 2026",
-        "html": email_html,
-    })
-    logger.info(f"Sent community email to {_mask_email(to_email)}")
+    resend.Emails.send(payload)
+    logger.info(f"Sent registration email ({len(members_qr)} members) to {_mask_email(to_email)}")

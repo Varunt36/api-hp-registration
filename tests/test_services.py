@@ -89,12 +89,16 @@ class TestInsertRegistrationMembers:
 
 
 class TestProcessQrAndEmails:
-    """Primary email gets ALL QR codes. Other members with own email get only their own."""
+    """Primary email gets ALL QR codes. Other members with own email get only their own.
+
+    Only one email is sent per recipient — the combined registration confirmation
+    that includes QR codes, travel guide, and community links.
+    """
 
     def test_3_members_2_unique_emails(self, mock_db):
         """M1(john@), M2(no email), M3(bob@)
-        john@ gets: 1 combined email with M1+M2+M3 QR codes + info = 3 emails
-        bob@  gets: 1 email with M3 QR code + info                 = 3 emails
+        john@ gets: 1 combined email with M1+M2+M3 QR codes
+        bob@  gets: 1 email with M3 QR code
         """
         setup_db_for_success(mock_db)
 
@@ -105,8 +109,7 @@ class TestProcessQrAndEmails:
         ]
 
         with patch("app.services.registration_service.generate_qr_image") as mock_qr, \
-             patch("app.services.registration_service.send_combined_qr_email") as mock_qr_email, \
-             patch("app.services.registration_service.send_info_emails") as mock_info:
+             patch("app.services.registration_service.send_combined_qr_email") as mock_qr_email:
             mock_qr.return_value = (b"fake-png", "https://storage.test/qr.png")
 
             from app.services.registration_service import process_qr_and_emails
@@ -130,14 +133,9 @@ class TestProcessQrAndEmails:
             assert len(bob_call.args[1]) == 1
             assert bob_call.args[1][0]["ticket_number"] == "HP-2026-00001-M3"
 
-            # Info emails: 2 unique emails
-            assert mock_info.call_count == 2
-            info_emails = {call.args[0] for call in mock_info.call_args_list}
-            assert info_emails == {"john@example.com", "bob@example.com"}
-
     def test_3_members_all_no_email_except_primary(self, mock_db):
         """M1(john@), M2(no email), M3(no email)
-        john@ gets: 1 email with M1+M2+M3 QR codes + info = 3 emails total
+        john@ gets: 1 email with M1+M2+M3 QR codes
         """
         setup_db_for_success(mock_db)
 
@@ -148,8 +146,7 @@ class TestProcessQrAndEmails:
         ]
 
         with patch("app.services.registration_service.generate_qr_image") as mock_qr, \
-             patch("app.services.registration_service.send_combined_qr_email") as mock_qr_email, \
-             patch("app.services.registration_service.send_info_emails") as mock_info:
+             patch("app.services.registration_service.send_combined_qr_email") as mock_qr_email:
             mock_qr.return_value = (b"fake-png", "https://storage.test/qr.png")
 
             from app.services.registration_service import process_qr_and_emails
@@ -160,14 +157,11 @@ class TestProcessQrAndEmails:
             assert mock_qr_email.call_args.args[0] == "john@example.com"
             assert len(mock_qr_email.call_args.args[1]) == 3
 
-            # Only 1 info email
-            assert mock_info.call_count == 1
-
     def test_3_members_all_different_emails(self, mock_db):
         """M1(john@), M2(jane@), M3(bob@)
-        john@ gets: ALL 3 QR codes + info = 3 emails
-        jane@ gets: her QR code + info    = 3 emails
-        bob@  gets: his QR code + info    = 3 emails
+        john@ gets: ALL 3 QR codes
+        jane@ gets: her QR code
+        bob@  gets: his QR code
         """
         setup_db_for_success(mock_db)
 
@@ -178,8 +172,7 @@ class TestProcessQrAndEmails:
         ]
 
         with patch("app.services.registration_service.generate_qr_image") as mock_qr, \
-             patch("app.services.registration_service.send_combined_qr_email") as mock_qr_email, \
-             patch("app.services.registration_service.send_info_emails") as mock_info:
+             patch("app.services.registration_service.send_combined_qr_email") as mock_qr_email:
             mock_qr.return_value = (b"fake-png", "https://storage.test/qr.png")
 
             from app.services.registration_service import process_qr_and_emails
@@ -205,11 +198,8 @@ class TestProcessQrAndEmails:
             assert len(bob_call.args[1]) == 1
             assert bob_call.args[1][0]["ticket_number"] == "HP-2026-00001-M3"
 
-            # 3 info emails (one per unique email)
-            assert mock_info.call_count == 3
-
     def test_single_member(self, mock_db):
-        """1 member → 1 QR email + info = 3 emails total."""
+        """1 member → 1 QR email total."""
         setup_db_for_success(mock_db)
 
         members_data = [
@@ -217,8 +207,7 @@ class TestProcessQrAndEmails:
         ]
 
         with patch("app.services.registration_service.generate_qr_image") as mock_qr, \
-             patch("app.services.registration_service.send_combined_qr_email") as mock_qr_email, \
-             patch("app.services.registration_service.send_info_emails") as mock_info:
+             patch("app.services.registration_service.send_combined_qr_email") as mock_qr_email:
             mock_qr.return_value = (b"fake-png", "https://storage.test/qr.png")
 
             from app.services.registration_service import process_qr_and_emails
@@ -226,7 +215,6 @@ class TestProcessQrAndEmails:
 
             assert mock_qr_email.call_count == 1
             assert len(mock_qr_email.call_args.args[1]) == 1
-            assert mock_info.call_count == 1
 
     def test_qr_failure_does_not_block_emails(self, mock_db):
         setup_db_for_success(mock_db)
@@ -236,15 +224,13 @@ class TestProcessQrAndEmails:
         ]
 
         with patch("app.services.registration_service.generate_qr_image", side_effect=Exception("Storage down")), \
-             patch("app.services.registration_service.send_combined_qr_email") as mock_qr_email, \
-             patch("app.services.registration_service.send_info_emails") as mock_info:
+             patch("app.services.registration_service.send_combined_qr_email") as mock_qr_email:
 
             from app.services.registration_service import process_qr_and_emails
             process_qr_and_emails("test-uuid", members_data, "john@example.com")
 
             mock_qr_email.assert_called_once()
             assert mock_qr_email.call_args.args[1][0]["qr_bytes"] is None
-            mock_info.assert_called_once()
 
     def test_email_failure_does_not_crash(self, mock_db):
         setup_db_for_success(mock_db)
@@ -254,14 +240,12 @@ class TestProcessQrAndEmails:
         ]
 
         with patch("app.services.registration_service.generate_qr_image") as mock_qr, \
-             patch("app.services.registration_service.send_combined_qr_email", side_effect=Exception("Resend down")), \
-             patch("app.services.registration_service.send_info_emails") as mock_info:
+             patch("app.services.registration_service.send_combined_qr_email", side_effect=Exception("Resend down")):
             mock_qr.return_value = (b"fake-png", "https://storage.test/qr.png")
 
             from app.services.registration_service import process_qr_and_emails
+            # Should not raise
             process_qr_and_emails("test-uuid", members_data, "john@example.com")
-
-            mock_info.assert_called_once()
 
 
 class TestCombinedQrEmail:
@@ -277,7 +261,7 @@ class TestCombinedQrEmail:
             email = mock_send.call_args[0][0]
             assert email["to"] == ["john@example.com"]
             assert "John Doe" in email["subject"]
-            assert "YDS Germany 2026" in email["subject"]
+            assert "HariPrabodham Germany 2026" in email["subject"]
             assert len(email["attachments"]) == 1
             # Template should include the reference number
             assert "HP-2026-00001" in email["html"]
@@ -334,38 +318,31 @@ class TestCombinedQrEmail:
             assert "<script>" not in email_html
 
 
-class TestInfoEmails:
-    def test_sends_travel_email(self):
-        """Travel guide email is always sent."""
-        with patch("resend.Emails.send") as mock_send:
-            from app.services.email_service import send_info_emails
-            send_info_emails("john@example.com")
+class TestCombinedEmailIncludesTravelAndCommunity:
+    """The single combined email embeds travel CTA and community URLs."""
 
-            # With no social URLs configured, only travel email is sent
-            assert mock_send.call_count == 1
-            assert "Travel Guide" in mock_send.call_args[0][0]["subject"]
+    def test_includes_travel_url_and_community_buttons(self):
+        members_qr = [
+            {"member_name": "John Doe", "ticket_number": "HP-2026-00001-M1", "qr_bytes": b"fake"},
+        ]
 
-    def test_social_email_sent_when_urls_configured(self):
-        """Social email is sent when at least one platform URL is configured."""
         with patch("resend.Emails.send") as mock_send, \
              patch("app.services.email_service.settings") as mock_settings:
+            mock_settings.resend_api_key = "x"
             mock_settings.resend_from_email = "test@example.com"
-            mock_settings.email_logo_url = ""
+            mock_settings.frontend_url = "https://app.example.com"
             mock_settings.whatsapp_group_url = "https://chat.whatsapp.com/test"
-            mock_settings.whatsapp_qr_url = "https://storage.test/wa-qr.png"
             mock_settings.telegram_group_url = "https://t.me/test"
-            mock_settings.telegram_qr_url = "https://storage.test/tg-qr.png"
-            mock_settings.instagram_url = ""
-            mock_settings.youtube_url = ""
 
-            from app.services.email_service import send_social_email
-            send_social_email("john@example.com")
+            from app.services.email_service import send_combined_qr_email
+            send_combined_qr_email("john@example.com", members_qr, reference="HP-2026-00001")
 
-            assert mock_send.call_count == 1
             email_html = mock_send.call_args[0][0]["html"]
-            assert "WhatsApp" in email_html
-            assert "Telegram" in email_html
+            assert "https://app.example.com/explore" in email_html
             assert "chat.whatsapp.com/test" in email_html
+            assert "t.me/test" in email_html
+            assert "Stay Connected" in email_html
+            assert "Plan Your Trip" in email_html
 
 
 class TestCompletePayment:

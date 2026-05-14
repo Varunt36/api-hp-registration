@@ -4,7 +4,7 @@ from datetime import date
 from app.core.exceptions import QuotaExceededError, RegistrationInsertError
 from app.core.supabase import supabase
 from app.models.registration import Gender, MemberInput, RegistrationInput
-from app.services.email_service import send_combined_qr_email, send_community_email
+from app.services.email_service import send_combined_qr_email
 from app.services.qr_service import generate_qr_image
 
 logger = logging.getLogger(__name__)
@@ -90,9 +90,8 @@ def insert_registration_members(registration_id: str, reference: str, data: Regi
 
 
 def process_qr_and_emails(registration_id: str, members_data: list, primary_email: str, reference: str = ""):
-    """Generate QR codes and send all emails (registration, travel, social)."""
+    """Generate QR codes and send the single registration confirmation email."""
     all_members_qr = []
-    unique_emails = set()
 
     for member_data in members_data:
         ticket_number = member_data["ticket_number"]
@@ -111,7 +110,6 @@ def process_qr_and_emails(registration_id: str, members_data: list, primary_emai
             "qr_bytes": qr_bytes,
             "email": member_email,
         })
-        unique_emails.add(member_email or primary_email)
 
     # Registration email with QR codes to primary contact
     try:
@@ -119,20 +117,13 @@ def process_qr_and_emails(registration_id: str, members_data: list, primary_emai
     except Exception:
         logger.exception(f"Registration email failed for primary contact ({reference})")
 
-    # Individual QR email to other members who have their own email
+    # Individual email to other members who have their own email
     for item in all_members_qr:
         if item["email"] and item["email"] != primary_email:
             try:
                 send_combined_qr_email(item["email"], [item], reference=reference)
             except Exception:
                 logger.exception(f"Registration email failed for member ({reference})")
-
-    # Travel guide + social links — once per unique email
-    for email_address in unique_emails:
-        try:
-            send_community_email(email_address)
-        except Exception:
-            logger.exception(f"Community email failed ({reference})")
 
 
 _ADMIN_DEFAULT_KARYAKARTA = "Admin"
