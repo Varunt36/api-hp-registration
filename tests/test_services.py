@@ -366,3 +366,88 @@ class TestInfoEmails:
             assert "WhatsApp" in email_html
             assert "Telegram" in email_html
             assert "chat.whatsapp.com/test" in email_html
+
+
+class TestCompletePayment:
+    def _setup(self, mock_db):
+        """Build a mock-db harness that supports the full happy path of complete_payment."""
+        from app.services.payment_service import complete_payment
+        tables = setup_db_for_success(mock_db)
+        intents = MagicMock()
+        payments = MagicMock()
+        original_router = mock_db.table.side_effect
+        def router(name):
+            if name == "payment_intents": return intents
+            if name == "payments":        return payments
+            return original_router(name)
+        mock_db.table.side_effect = router
+
+        # No prior payment for this transaction
+        payments.select.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
+        # Intent found, pending
+        intents.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[{
+                "id": "intent-1",
+                "reference": "HP-2026-00001",
+                "provider": "stripe",
+                "payload": {
+                    "country": "DE",
+                    "karyakarta": "Lead",
+                    "terms_accepted": True,
+                    "members": [{
+                        "first_name": "A", "last_name": "B",
+                        "gender": "male", "dob": "1990-01-01",
+                        "email": "a@b.com", "phone": None,
+                    }],
+                },
+                "amount": 250.00, "currency": "EUR", "status": "pending",
+            }]
+        )
+        # mark_consumed wins
+        intents.update.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[{"id": "intent-1"}]
+        )
+        # Insert payment row
+        payments.insert.return_value.execute.return_value = MagicMock()
+        # Update emails_sent flag
+        payments.update.return_value.eq.return_value.execute.return_value = MagicMock()
+        # Registration lookup by reference
+        tables["reg"].select.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[{"id": "test-reg-uuid"}]
+        )
+        return complete_payment, tables, intents, payments
+
+    def test_happy_path_inserts_payment_with_provider(self, mock_db):
+        complete_payment, tables, intents, payments = self._setup(mock_db)
+
+        complete_payment(
+            intent_id="intent-1",
+            transaction_id="txn-abc",
+            provider="paypal",
+            provider_order_id="po-123",
+        )
+
+        payment_row = payments.insert.call_args[0][0]
+        assert payment_row["payment_method"] == "paypal"
+        assert payment_row["transaction_id"] == "txn-abc"
+        assert payment_row["provider_order_id"] == "po-123"
+        assert payment_row["status"] == "paid"
+
+    def test_duplicate_transaction_is_skipped(self, mock_db):
+        complete_payment, tables, intents, payments = self._setup(mock_db)
+        payments.select.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[{"id": "already-there"}]
+        )
+
+        complete_payment(intent_id="intent-1", transaction_id="txn-abc", provider="paypal")
+
+        payments.insert.assert_not_called()
+
+    def test_intent_already_consumed_is_skipped(self, mock_db):
+        complete_payment, tables, intents, payments = self._setup(mock_db)
+        # mark_consumed returns no rows (someone else won the race)
+        intents.update.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
+
+        complete_payment(intent_id="intent-1", transaction_id="txn-abc", provider="paypal")
+
+        payments.insert.assert_not_called()

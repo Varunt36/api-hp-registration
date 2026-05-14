@@ -54,3 +54,51 @@ class AdminUnauthorizedError(AppError):
 class AdminForbiddenError(AppError):
     def __init__(self):
         super().__init__("Admin access required.", code="ADMIN_FORBIDDEN", status_code=403)
+
+
+_PROVIDER_DISPLAY_NAMES = {
+    "paypal": "PayPal",
+    "stripe": "Stripe",
+}
+
+
+class PaymentProviderUnreachable(PaymentError):
+    """Transient: the payment provider could not be reached (network, DNS, timeout, 5xx).
+
+    Surfaced to the user as "try again". Log the `detail` for ops.
+    """
+    def __init__(self, provider: str, detail: str = ""):
+        self.detail = detail
+        display = _PROVIDER_DISPLAY_NAMES.get(provider.lower(), provider.capitalize())
+        super().__init__(
+            f"{display} is temporarily unavailable. Please try again in a moment.",
+        )
+        self.code = "PAYMENT_PROVIDER_UNREACHABLE"
+        self.status_code = 502
+
+
+class PaymentProviderRejected(PaymentError):
+    """Permanent for this request: the provider returned a 4xx that is not a user decline.
+
+    Examples: malformed amount, invalid currency, missing field, bad credentials.
+    Almost always indicates a config bug on our side — page an engineer.
+    """
+    def __init__(self, provider: str, detail: str = ""):
+        self.detail = detail
+        super().__init__("Payment could not be initiated. Please contact support.")
+        self.code = "PAYMENT_PROVIDER_REJECTED"
+        self.status_code = 502
+
+
+class PaymentDeclinedError(PaymentError):
+    """The buyer's instrument was declined (card, bank, balance, fraud rule).
+
+    402 Payment Required is the semantically correct status. Surfaced to the user
+    as "your payment method was declined — please try a different one".
+    """
+    def __init__(self, provider: str):
+        super().__init__(
+            "Your payment was declined. Please try a different payment method.",
+        )
+        self.code = "PAYMENT_DECLINED"
+        self.status_code = 402

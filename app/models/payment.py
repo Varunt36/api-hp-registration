@@ -6,6 +6,7 @@ from app.models.registration import RegistrationInput
 
 class PaymentMethod(str, Enum):
     stripe = "stripe"
+    paypal = "paypal"
 
 
 class CreatePaymentRequest(RegistrationInput):

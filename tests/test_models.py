@@ -181,3 +181,33 @@ class TestRegistrationValidation:
         for code in ["DE", "AT", "CH", "GB", "US", "IN", "NZ"]:
             reg = RegistrationInput(**self._base_payload(country=code))
             assert reg.country == code
+
+
+def test_payment_method_accepts_paypal():
+    from app.models.payment import PaymentMethod, CreatePaymentRequest
+    req = CreatePaymentRequest(
+        country="DE", karyakarta="Lead", terms_accepted=True,
+        members=[{
+            "first_name": "A", "last_name": "B",
+            "gender": "male", "dob": "1990-01-01",
+            "email": "a@b.com",
+        }],
+        payment_method="paypal",
+    )
+    assert req.payment_method == PaymentMethod.paypal
+
+
+def test_payment_method_rejects_unknown():
+    import pytest
+    from pydantic import ValidationError
+    from app.models.payment import CreatePaymentRequest
+    with pytest.raises(ValidationError):
+        CreatePaymentRequest(
+            country="DE", karyakarta="L", terms_accepted=True,
+            members=[{
+                "first_name": "A", "last_name": "B",
+                "gender": "male", "dob": "1990-01-01",
+                "email": "a@b.com",
+            }],
+            payment_method="bitcoin",
+        )

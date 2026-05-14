@@ -6,9 +6,9 @@
 
 ---
 
-## POST `/register`
+## POST `/create-payment`
 
-Register a group with one or more members. Generates QR codes and sends 3 emails per member.
+Create a payment session for a group registration. Returns a hosted-checkout URL the FE redirects to. Registration is only finalized after the provider webhook confirms payment.
 
 ### Rules
 
@@ -16,6 +16,7 @@ Register a group with one or more members. Generates QR codes and sends 3 emails
 - Other members: email and phone are **optional**
 - If a member has no email, their QR code is sent to the first member's email
 - All data is sent in **one request** after the form is fully filled
+- `terms_accepted` **must** be `true`
 
 ### Request
 
@@ -23,6 +24,8 @@ Register a group with one or more members. Generates QR codes and sends 3 emails
 {
   "country": "DE",
   "karyakarta": "John Doe",
+  "terms_accepted": true,
+  "payment_method": "paypal",
   "members": [
     {
       "first_name": "John",
@@ -37,13 +40,6 @@ Register a group with one or more members. Generates QR codes and sends 3 emails
       "last_name": "Doe",
       "gender": "female",
       "dob": "1992-08-20"
-    },
-    {
-      "first_name": "Bob",
-      "last_name": "Smith",
-      "gender": "male",
-      "dob": "1985-03-10",
-      "email": "bob@example.com"
     }
   ]
 }
@@ -53,49 +49,77 @@ Register a group with one or more members. Generates QR codes and sends 3 emails
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `country` | string | Yes | Country code: `DE`, `AT`, `CH`, `GB`, `US`, `IN`, `NZ` |
-| `karyakarta` | string | Yes | Group leader / coordinator name |
-| `members` | array | Yes | At least 1 member |
-| `members[].first_name` | string | Yes | |
-| `members[].last_name` | string | Yes | |
+| `country` | string | Yes | One of: `DE`, `AT`, `CH`, `GB`, `US`, `IN`, `NZ` |
+| `karyakarta` | string | Yes | Group leader / coordinator name (1–200 chars) |
+| `terms_accepted` | boolean | Yes | Must be `true` |
+| `payment_method` | string | Yes | `"stripe"` or `"paypal"` |
+| `members` | array | Yes | 1–4 members |
+| `members[].first_name` | string | Yes | 1–100 chars |
+| `members[].last_name` | string | Yes | 1–100 chars |
 | `members[].gender` | string | Yes | `"male"` or `"female"` |
-| `members[].dob` | string | Yes | Date format: `YYYY-MM-DD` |
+| `members[].dob` | string | Yes | `YYYY-MM-DD`, not in the future, year ≥ 1900 |
 | `members[].email` | string | **Yes for 1st member**, optional for others | Emails/QR sent here |
-| `members[].phone` | string | No | |
+| `members[].phone` | string | No | Digits / spaces / dashes / parens, 7–20 chars |
 
 ### Success Response — `200 OK`
 
 ```json
 {
-  "success": true,
-  "reference": "HP-2026-00001",
-  "member_count": 3
+  "payment_url": "https://www.paypal.com/checkoutnow?token=...",
+  "reference": "HP-2026-00001"
 }
 ```
+
+**FE action:** redirect the browser to `payment_url`. That's the provider-hosted checkout page (Stripe Checkout or PayPal approval). After the user approves/pays, the provider redirects back to:
+
+- Success: `{FRONTEND_URL}/payment/success?ref=HP-2026-00001`
+- Cancel:  `{FRONTEND_URL}/payment/cancel`
+
+These two FE routes **must** exist. The `ref` query param is the registration reference.
+
+> **Important:** the success redirect happens *before* the registration is finalized. Finalization (members inserted, emails sent) happens on the provider webhook, server-to-server. The success page should either poll `GET /payment/status/{session_id}` or simply tell the user "we're processing — confirmation emails are on the way."
 
 ### Error Responses
 
-**400 — Validation error:**
+All errors follow the shape:
+
 ```json
-{
-  "detail": "First member must have an email address"
-}
+{ "error": { "code": "QUOTA_EXCEEDED", "message": "…" } }
 ```
 
-**400 — Country quota exceeded:**
-```json
-{
-  "detail": "Registration limit reached for country DE. Only 5 spots remain."
-}
-```
+| Status | Code | Meaning |
+|---|---|---|
+| `409` | `QUOTA_EXCEEDED` | Country is full |
+| `422` | `VALIDATION_ERROR` | Bad input — `error.details[]` lists each field |
+| `502` | `PAYMENT_PROVIDER_UNREACHABLE` | Provider unreachable — FE: "try again" |
+| `502` | `PAYMENT_PROVIDER_REJECTED` | Provider rejected our request — FE: "contact support" |
+| `503` | `PAYMENT_NOT_CONFIGURED` | Provider credentials missing on backend |
 
 ---
 
-## What happens after a successful registration?
+## GET `/payment/status/{session_id}`
 
-1. Each member gets a unique ticket number (e.g. `HP-2026-00001-M1`, `HP-2026-00001-M2`)
-2. A QR code is generated for each member (encodes their ticket number)
-3. **3 emails** are sent per member:
+**Stripe only today.** Look up payment status by Stripe Checkout Session ID. Useful for FE polling on the success page.
+
+### Response — `200 OK`
+
+```json
+{ "status": "paid", "reference": "HP-2026-00001" }
+```
+
+`status` is one of: `"paid"`, `"pending"`, `"processing"`, `"not_found"`. `reference` is only set when `"paid"`.
+
+> PayPal does not currently have an equivalent endpoint — for PayPal, rely on the confirmation email or have the success page show a "processing" state.
+
+---
+
+## What happens after a successful payment?
+
+The provider webhook (`/webhooks/stripe` or `/webhooks/paypal`) fires server-to-server. The backend then:
+
+1. Inserts each member with a unique ticket number (e.g. `HP-2026-00001-M1`, `HP-2026-00001-M2`)
+2. Generates a QR code per member (encodes the ticket number)
+3. Sends **3 emails** per member:
    - **Registration confirmation** — ticket number + QR code image
    - **Travel guide** — event travel information
    - **WhatsApp & Instagram** — social media QR codes to connect
