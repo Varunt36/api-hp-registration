@@ -9,15 +9,8 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
     debug: bool = False
 
-    email_banner_url: str = ""
-    email_logo_url: str = ""
-
     whatsapp_group_url: str = ""
-    whatsapp_qr_url: str = ""
     telegram_group_url: str = ""
-    telegram_qr_url: str = ""
-    instagram_url: str = ""
-    youtube_url: str = ""
 
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""

@@ -1,15 +1,16 @@
 import logging
-import traceback
 
 from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.core.exceptions import AppError
-from app.core.rate_limiter import RateLimitMiddleware
 from app.routers import admin, payment
 
 logging.basicConfig(
@@ -18,12 +19,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# NOTE: get_remote_address uses the socket peer. Safe only when not behind a reverse proxy.
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+
 app = FastAPI(
     title="HP Registration API",
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
     openapi_url="/openapi.json" if settings.debug else None,
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.exception_handler(AppError)
@@ -34,52 +40,46 @@ async def app_error_handler(request: Request, exc: AppError):
     )
 
 
-@app.exception_handler(RequestValidationError)
-async def validation_error_handler(request: Request, exc: RequestValidationError):
-    errors = []
-    for err in exc.errors():
-        field = " → ".join(str(loc) for loc in err["loc"] if loc != "body")
-        errors.append({"field": field, "message": err["msg"]})
-    return JSONResponse(
-        status_code=422,
-        content={"error": {"code": "VALIDATION_ERROR", "message": "Invalid input data.", "details": errors}},
-    )
-
-
 @app.exception_handler(Exception)
 async def unhandled_error_handler(request: Request, exc: Exception):
     logger.exception(f"Unhandled error on {request.method} {request.url.path}")
-    content = {"error": {"code": "INTERNAL_ERROR", "message": "An unexpected error occurred. Please try again."}}
-    if settings.debug:
-        content["error"]["debug"] = traceback.format_exc()
-    return JSONResponse(status_code=500, content=content)
+    return JSONResponse(
+        status_code=500,
+        content={"error": {"code": "INTERNAL_ERROR", "message": "An unexpected error occurred."}},
+    )
+
+
+_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+}
+_DEFAULT_CSP = "default-src 'self'; frame-ancestors 'none'"
+_DOCS_CSP = "default-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data: https://fastapi.tiangolo.com; frame-ancestors 'none'"
+_DOCS_PATHS = ("/docs", "/redoc", "/openapi.json")
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["X-XSS-Protection"] = "0"
-        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        if request.url.path.startswith(("/docs", "/redoc", "/openapi.json")):
-            response.headers["Content-Security-Policy"] = "default-src 'self' https://cdn.jsdelivr.net https://fastapi.tiangolo.com 'unsafe-inline'; frame-ancestors 'none'"
-        else:
-            response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+        for k, v in _SECURITY_HEADERS.items():
+            response.headers[k] = v
+        response.headers["Content-Security-Policy"] = (
+            _DOCS_CSP if request.url.path.startswith(_DOCS_PATHS) else _DEFAULT_CSP
+        )
         return response
 
 
-MAX_BODY_SIZE = 64 * 1024
+_MAX_BODY_SIZE = 64 * 1024
+_MAX_WEBHOOK_BODY_SIZE = 1024 * 1024
 
 
 class BodySizeLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if request.url.path.startswith("/webhooks/"):
-            return await call_next(request)
+        limit = _MAX_WEBHOOK_BODY_SIZE if request.url.path.startswith("/webhooks/") else _MAX_BODY_SIZE
         content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > MAX_BODY_SIZE:
+        if content_length and int(content_length) > limit:
             return JSONResponse(
                 status_code=413,
                 content={"error": {"code": "PAYLOAD_TOO_LARGE", "message": "Request body too large."}},
@@ -89,10 +89,10 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(BodySizeLimitMiddleware)
-app.add_middleware(RateLimitMiddleware, max_requests=20, window_seconds=60)
+app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[url.strip() for url in settings.frontend_url.split(",")],
+    allow_origins=[u.strip() for u in settings.frontend_url.split(",")],
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
@@ -101,11 +101,7 @@ app.add_middleware(
 app.include_router(payment.router)
 app.include_router(admin.router)
 
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-
-@app.get("/")
-def root():
-    return {"status": "Hello from registration backend"}

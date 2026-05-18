@@ -19,20 +19,20 @@ class AdminRegistrationRequest(BaseModel):
 
     @field_validator("full_name")
     @classmethod
-    def validate_full_name(cls, v):
+    def _full_name(cls, v):
         v = v.strip()
-        if len(v) < 1 or len(v) > 200:
+        if not 1 <= len(v) <= 200:
             raise ValueError("Full name must be 1-200 characters")
         return validate_safe_text(v, "Full name")
 
     @field_validator("dob")
     @classmethod
-    def validate_dob(cls, v):
+    def _dob(cls, v):
         return validate_dob_value(v)
 
     @field_validator("country")
     @classmethod
-    def validate_country(cls, v):
+    def _country(cls, v):
         v = v.strip().upper()
         if v not in ALLOWED_COUNTRIES:
             raise ValueError(f"Country must be one of: {', '.join(sorted(ALLOWED_COUNTRIES))}")

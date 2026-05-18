@@ -1,79 +1,136 @@
-"""Provider-agnostic payment finisher.
+"""Payment intent store + post-payment orchestration.
 
-Called by both /webhooks/stripe and /webhooks/paypal as a BackgroundTask after
-signature verification. Looks up the intent, reconstructs the RegistrationInput,
-inserts members + payment row, sends emails. Idempotent on transaction_id.
+The intent UUID is the only thing handed to the provider, so PII stays off the
+provider. The reference number is allocated inside complete_payment, after the
+webhook has confirmed payment.
 """
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from typing import Literal, Optional
 
+from app.core.exceptions import QuotaExceededError, RegistrationInsertError
 from app.core.supabase import supabase
 from app.models.registration import RegistrationInput
-from app.services import payment_intent_service
 from app.services.registration_service import (
+    allocate_reference,
     check_country_quota,
+    delete_registration,
     insert_registration_members,
     process_qr_and_emails,
 )
 
 logger = logging.getLogger(__name__)
 
+Provider = Literal["stripe", "paypal"]
+_INTENT_TTL = timedelta(hours=1)
 
-def complete_payment(
-    intent_id: str,
-    transaction_id: str,
-    provider: str,
-    provider_order_id: str | None = None,
-) -> None:
-    """Finish the registration once the provider has confirmed payment."""
-    log_ctx = f"provider={provider} txn={transaction_id} intent={intent_id}"
+def create_intent(*, provider: Provider, payload: RegistrationInput, amount: float, currency: str = "EUR") -> str:
+    expires_at = (datetime.now(timezone.utc) + _INTENT_TTL).isoformat()
+    result = supabase.table("payment_intents").insert({
+        "provider": provider,
+        "payload": payload.model_dump(mode="json"),
+        "amount": amount,
+        "currency": currency,
+        "status": "pending",
+        "expires_at": expires_at,
+    }).execute()
+    if not result.data:
+        raise RuntimeError("Failed to create payment_intent")
+    intent_id = result.data[0]["id"]
+    logger.info(f"intent created: id={intent_id} provider={provider}")
+    return intent_id
 
-    # Idempotency #1: skip if we've already recorded this transaction.
-    existing = supabase.table("payments").select("id").eq("transaction_id", transaction_id).execute()
-    if existing.data:
-        logger.info(f"[SKIP] Already processed: {log_ctx}")
-        return
 
-    # Idempotency #2: atomically claim the intent (pending -> consumed).
-    intent = payment_intent_service.get_pending(intent_id)
-    if not intent:
-        logger.warning(f"[FAIL] Intent not found or already consumed: {log_ctx} - MANUAL RECOVERY")
-        return
-    if not payment_intent_service.mark_consumed(intent_id):
-        logger.info(f"[SKIP] Intent consumed concurrently: {log_ctx}")
-        return
+def get_pending_intent(intent_id: str) -> Optional[dict]:
+    result = (
+        supabase.table("payment_intents")
+        .select("id, provider, payload, amount, currency, status")
+        .eq("id", intent_id).eq("status", "pending").execute()
+    )
+    return result.data[0] if result.data else None
 
-    reference = intent["reference"]
-    amount = float(intent["amount"])
+
+def mark_intent_consumed(intent_id: str, reference: str) -> bool:
+    """Atomic pending -> consumed. Returns True iff this call won the race."""
+    result = (
+        supabase.table("payment_intents")
+        .update({"status": "consumed", "reference": reference})
+        .eq("id", intent_id).eq("status", "pending").execute()
+    )
+    won = bool(result.data)
+    logger.info(f"intent {'consumed' if won else 'race lost'}: id={intent_id}")
+    return won
+
+
+def revert_intent_to_pending(intent_id: str) -> None:
+    """Best-effort undo of a consumed claim so a webhook retry can re-process."""
     try:
-        data = RegistrationInput(**intent["payload"])
+        supabase.table("payment_intents").update(
+            {"status": "pending", "reference": None}
+        ).eq("id", intent_id).execute()
     except Exception:
-        logger.exception(f"[FAIL] Payload deserialization: {log_ctx} ref={reference} - MANUAL RECOVERY")
+        logger.exception(f"Failed to revert intent {intent_id}")
+
+
+def lookup_intent_status(intent_id: str) -> Optional[dict]:
+    """Return {status, reference}. Pending intents past expiry are reported as 'expired'."""
+    result = (
+        supabase.table("payment_intents")
+        .select("status, reference, expires_at").eq("id", intent_id).execute()
+    )
+    if not result.data:
+        return None
+    row = result.data[0]
+    if row["status"] == "pending":
+        expires_at = datetime.fromisoformat(row["expires_at"].replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) > expires_at:
+            return {"status": "expired", "reference": None}
+    return {"status": row["status"], "reference": row.get("reference")}
+
+
+# --- Orchestration --------------------------------------------------------
+
+def complete_payment(intent_id: str, transaction_id: str, provider: str, provider_order_id: str | None = None) -> None:
+    """Finalize a registration after a successful payment webhook. Idempotent."""
+    ctx = f"provider={provider} txn={transaction_id} intent={intent_id}"
+
+    if supabase.table("payments").select("id").eq("transaction_id", transaction_id).execute().data:
+        logger.info(f"[SKIP] already processed: {ctx}")
         return
 
-    log_ctx = f"{log_ctx} ref={reference} country={data.country} members={len(data.members)}"
+    intent = get_pending_intent(intent_id)
+    if not intent:
+        logger.warning(f"[FAIL] intent not pending: {ctx}")
+        return
 
-    # Race-condition guard: re-check the country quota at payment time.
+    data = RegistrationInput(**intent["payload"])
+    ctx = f"{ctx} country={data.country} members={len(data.members)}"
+
     try:
         check_country_quota(data.country, len(data.members))
-    except Exception:
-        logger.warning(f"[FAIL] Quota exceeded at payment time: {log_ctx} - MANUAL REFUND NEEDED")
+    except QuotaExceededError:
+        logger.warning(f"[FAIL] quota exceeded at capture time: {ctx} - MANUAL REFUND")
         return
 
-    reg_lookup = supabase.table("registrations").select("id").eq("reference", reference).execute()
-    if not reg_lookup.data:
-        logger.error(f"[FAIL] Pre-allocated registration not found: {log_ctx} - MANUAL RECOVERY")
+    allocation = allocate_reference(data)
+    registration_id, reference = allocation["registration_id"], allocation["reference"]
+    ctx = f"{ctx} ref={reference}"
+
+    if not mark_intent_consumed(intent_id, reference):
+        logger.info(f"[SKIP] intent consumed concurrently, rolling back: {ctx}")
+        delete_registration(registration_id)
         return
-    registration_id = reg_lookup.data[0]["id"]
 
     try:
         result = insert_registration_members(registration_id, reference, data)
-    except Exception:
-        logger.exception(f"[FAIL] Member insert: {log_ctx} - MANUAL RECOVERY")
+    except RegistrationInsertError:
+        logger.exception(f"[FAIL] member insert, reverting intent: {ctx}")
+        revert_intent_to_pending(intent_id)
         return
 
+    amount = float(intent["amount"])
     try:
         supabase.table("payments").insert({
             "registration_id": registration_id,
@@ -86,19 +143,15 @@ def complete_payment(
             "paid_at": datetime.now(timezone.utc).isoformat(),
         }).execute()
     except Exception:
-        logger.exception(f"[FAIL] Payment record insert: {log_ctx}")
+        logger.exception(f"[FAIL] payment row insert, rolling back: {ctx}")
+        delete_registration(registration_id)
         return
 
-    logger.info(f"[OK] Payment completed: {log_ctx} EUR{amount:.2f}")
+    logger.info(f"[OK] payment completed: {ctx} EUR{amount:.2f}")
 
-    primary_email = data.members[0].email
     try:
-        process_qr_and_emails(registration_id, result["members_data"], primary_email, reference)
-        supabase.table("payments").update({"emails_sent": True}).eq("registration_id", registration_id).execute()
-        logger.info(f"[OK] Emails sent: {log_ctx}")
+        sent = process_qr_and_emails(registration_id, result["members_data"], data.members[0].email, reference)
+        if sent > 0:
+            supabase.table("payments").update({"emails_sent": True}).eq("registration_id", registration_id).execute()
     except Exception:
-        logger.exception(f"[FAIL] Emails: {log_ctx} - payment saved, emails need manual retry")
-        try:
-            supabase.table("payments").update({"emails_sent": False}).eq("registration_id", registration_id).execute()
-        except Exception:
-            logger.exception(f"[FAIL] Could not update emails_sent flag: {log_ctx}")
+        logger.exception(f"[FAIL] emails: {ctx} - payment saved, retry manually")

@@ -1,27 +1,20 @@
 import logging
 
+import stripe
 from fastapi import APIRouter, BackgroundTasks, Request
 
 from app.core.config import settings
 from app.core.exceptions import PaymentConfigError, WebhookVerificationError
-from app.models.payment import CreatePaymentRequest, CreatePaymentResponse, PaymentMethod, PaymentStatusResponse
-from app.services import payment_intent_service
-from app.services.payment_service import complete_payment
-from app.services.registration_service import allocate_reference, check_country_quota
-from app.services.paypal_service import (
-    create_paypal_order,
-    extract_capture_intent_id,
-    extract_capture_transaction_id,
-    extract_supplementary_order_id,
-    verify_paypal_webhook,
+from app.models.payment import (
+    CreatePaymentRequest,
+    CreatePaymentResponse,
+    PaymentMethod,
+    PaymentStatusResponse,
 )
-from app.services.stripe_service import (
-    create_stripe_session,
-    extract_intent_id as stripe_extract_intent_id,
-    extract_transaction_id as stripe_extract_transaction_id,
-    get_payment_status,
-    verify_stripe_event,
-)
+from app.services import payment_service
+from app.services.paypal_service import create_paypal_order, verify_paypal_webhook
+from app.services.registration_service import check_country_quota
+from app.services.stripe_service import create_stripe_session, verify_stripe_event
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -38,29 +31,27 @@ def create_payment(data: CreatePaymentRequest):
     ):
         raise PaymentConfigError()
 
-    # creates registration data without members
-    allocation = allocate_reference(data)
-    reference = allocation["reference"]
     amount = len(data.members) * settings.payment_amount_per_member
-
-    intent_id = payment_intent_service.create(
-        reference=reference,
+    intent_id = payment_service.create_intent(
         provider=data.payment_method.value,
         payload=data,
         amount=amount,
     )
 
     if data.payment_method == PaymentMethod.stripe:
-        payment_url = create_stripe_session(intent_id, amount, reference, len(data.members))
+        payment_url = create_stripe_session(intent_id, amount, len(data.members))
     else:
-        payment_url, _ = create_paypal_order(intent_id, amount, reference)
+        payment_url, _ = create_paypal_order(intent_id, amount)
 
-    return CreatePaymentResponse(payment_url=payment_url, reference=reference)
+    return CreatePaymentResponse(payment_url=payment_url, intent_id=intent_id)
 
 
-@router.get("/payment/status/{session_id}", response_model=PaymentStatusResponse)
-def payment_status(session_id: str):
-    return PaymentStatusResponse(**get_payment_status(session_id))
+@router.get("/payment/status/{intent_id}", response_model=PaymentStatusResponse)
+def payment_status(intent_id: str):
+    result = payment_service.lookup_intent_status(intent_id)
+    if result is None:
+        return PaymentStatusResponse(status="not_found")
+    return PaymentStatusResponse(**result)
 
 
 @router.post("/webhooks/stripe")
@@ -70,24 +61,24 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
 
     try:
         event = verify_stripe_event(payload, sig_header)
-    except Exception:
+    except (stripe.SignatureVerificationError, ValueError):
         logger.warning("Stripe webhook signature verification failed")
         raise WebhookVerificationError()
 
-    event_type = event["type"]
-    logger.info(f"Stripe webhook received: {event_type}")
+    logger.info(f"Stripe webhook received: {event['type']}")
 
-    if event_type == "checkout.session.completed":
+    if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
-        intent_id = stripe_extract_intent_id(session)
-        transaction_id = stripe_extract_transaction_id(session)
-        if intent_id is None:
+        if session.get("payment_status") != "paid":
+            return {"status": "ok"}
+        intent_id = session.get("client_reference_id")
+        if not intent_id:
             logger.warning(f"Stripe webhook missing intent_id (session={session.get('id')})")
         else:
             background_tasks.add_task(
-                complete_payment,
+                payment_service.complete_payment,
                 intent_id=intent_id,
-                transaction_id=transaction_id,
+                transaction_id=session.get("payment_intent") or session["id"],
                 provider="stripe",
                 provider_order_id=session.get("id"),
             )
@@ -99,25 +90,25 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
 async def paypal_webhook(request: Request, background_tasks: BackgroundTasks):
     raw_body = await request.body()
     headers = {k.lower(): v for k, v in request.headers.items()}
-
     event = verify_paypal_webhook(headers, raw_body)
 
     event_type = event.get("event_type", "")
     logger.info(f"PayPal webhook received: {event_type}")
 
     if event_type == "PAYMENT.CAPTURE.COMPLETED":
-        intent_id = extract_capture_intent_id(event)
-        transaction_id = extract_capture_transaction_id(event)
-        order_id = extract_supplementary_order_id(event)
-        if intent_id is None or transaction_id is None:
-            logger.warning(f"PayPal webhook missing identifiers: intent={intent_id} txn={transaction_id} order={order_id}")
-        else:
+        resource = event.get("resource", {})
+        intent_id = resource.get("custom_id")
+        transaction_id = resource.get("id")
+        order_id = resource.get("supplementary_data", {}).get("related_ids", {}).get("order_id")
+        if intent_id and transaction_id:
             background_tasks.add_task(
-                complete_payment,
+                payment_service.complete_payment,
                 intent_id=intent_id,
                 transaction_id=transaction_id,
                 provider="paypal",
                 provider_order_id=order_id,
             )
+        else:
+            logger.warning(f"PayPal webhook missing identifiers: intent={intent_id} txn={transaction_id}")
 
     return {"status": "ok"}

@@ -2,7 +2,7 @@ import base64
 import html
 import logging
 import os
-from typing import List, Dict
+from typing import Dict, List
 
 import resend
 
@@ -15,7 +15,7 @@ _TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "..", "templates")
 
 
 def _load(filename: str) -> str:
-    with open(os.path.join(_TEMPLATE_DIR, filename), "r", encoding="utf-8") as f:
+    with open(os.path.join(_TEMPLATE_DIR, filename), encoding="utf-8") as f:
         return f.read()
 
 
@@ -23,9 +23,9 @@ _REGISTRATION_TEMPLATE = _load("registration_email.html")
 _MEMBER_CARD_TEMPLATE = _load("member_card.html")
 
 
-def _clean(text: str) -> str:
-    """Strip newlines/nulls to prevent header injection and stray whitespace."""
-    return text.replace("\r", "").replace("\n", "").replace("\0", "").strip()
+def _safe(text: str) -> str:
+    """Strip CR/LF/NUL (header-injection defense) and HTML-escape."""
+    return html.escape(text.replace("\r", "").replace("\n", "").replace("\0", "").strip())
 
 
 def _mask_email(email: str) -> str:
@@ -33,17 +33,14 @@ def _mask_email(email: str) -> str:
     return f"{local[0]}***@{domain}"
 
 
-def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str = ""):
-    """Send the single registration confirmation: entry passes + travel + community."""
-    to_email = _clean(to_email)
-    safe_reference = html.escape(_clean(reference))
-
-    cards = []
-    attachments = []
+def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str = "") -> None:
+    to = to_email.replace("\r", "").replace("\n", "").strip()
+    safe_ref = _safe(reference)
+    cards, attachments = [], []
 
     for item in members_qr:
-        name = html.escape(_clean(item["member_name"]))
-        ticket = _clean(item["ticket_number"])
+        name = _safe(item["member_name"])
+        ticket = item["ticket_number"].strip()
 
         if item["qr_bytes"]:
             cid = f"qr-{ticket}"
@@ -65,7 +62,7 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
         cards.append(
             _MEMBER_CARD_TEMPLATE
             .replace("{{MEMBER_NAME}}", name)
-            .replace("{{REFERENCE}}", safe_reference)
+            .replace("{{REFERENCE}}", safe_ref)
             .replace("{{QR_IMAGE}}", qr_html)
         )
 
@@ -77,13 +74,13 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
         .replace("{{TELEGRAM_URL}}", html.escape(settings.telegram_group_url))
     )
 
-    first_name = html.escape(members_qr[0]["member_name"])
+    first = html.escape(members_qr[0]["member_name"])
     suffix = "" if len(members_qr) == 1 else f" (+{len(members_qr) - 1})"
-    subject = f"HariPrabodham Germany 2026 Registration Confirmation - {first_name}{suffix}"
+    subject = f"HariPrabodham Germany 2026 Registration Confirmation - {first}{suffix}"
 
-    payload = {"from": settings.resend_from_email, "to": [to_email], "subject": subject, "html": body}
+    payload = {"from": settings.resend_from_email, "to": [to], "subject": subject, "html": body}
     if attachments:
         payload["attachments"] = attachments
 
     resend.Emails.send(payload)
-    logger.info(f"Sent registration email ({len(members_qr)} members) to {_mask_email(to_email)}")
+    logger.info(f"Sent registration email ({len(members_qr)} members) to {_mask_email(to)}")

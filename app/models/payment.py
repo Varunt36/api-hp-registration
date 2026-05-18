@@ -15,7 +15,7 @@ class CreatePaymentRequest(RegistrationInput):
 
 class CreatePaymentResponse(BaseModel):
     payment_url: str
-    reference: str
+    intent_id: str
 
 
 class PaymentStatusResponse(BaseModel):
