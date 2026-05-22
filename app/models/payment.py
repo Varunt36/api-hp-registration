@@ -21,3 +21,4 @@ class CreatePaymentResponse(BaseModel):
 class PaymentStatusResponse(BaseModel):
     status: str
     reference: Optional[str] = None
+    failure_reason: Optional[str] = None

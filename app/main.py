@@ -17,7 +17,29 @@ logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+for _noisy in ("httpcore", "httpcore.http2", "httpx", "hpack", "hpack.hpack", "hpack.table", "urllib3", "urllib3.connectionpool", "stripe"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
+
+
+def _mask(s: str) -> str:
+    if not s:
+        return "<MISSING>"
+    return f"{s[:8]}...{s[-4:]}" if len(s) > 12 else "<set>"
+
+
+logger.info("=" * 70)
+logger.info("HP Registration API starting")
+logger.info(f"  STRIPE_SECRET_KEY     = {_mask(settings.stripe_secret_key)}")
+logger.info(f"  STRIPE_WEBHOOK_SECRET = {_mask(settings.stripe_webhook_secret)}")
+logger.info(f"  PAYPAL_MODE           = {settings.paypal_mode}")
+logger.info(f"  PAYPAL_CLIENT_ID      = {_mask(settings.paypal_client_id)}")
+logger.info(f"  PAYPAL_WEBHOOK_ID     = {_mask(settings.paypal_webhook_id)}")
+logger.info(f"  RESEND_API_KEY        = {_mask(settings.resend_api_key)}")
+logger.info(f"  RESEND_FROM_EMAIL     = {settings.resend_from_email}")
+logger.info(f"  FRONTEND_URL          = {settings.frontend_url}")
+logger.info("=" * 70)
 
 # NOTE: get_remote_address uses the socket peer. Safe only when not behind a reverse proxy.
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])

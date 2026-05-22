@@ -75,10 +75,10 @@ def revert_intent_to_pending(intent_id: str) -> None:
 
 
 def lookup_intent_status(intent_id: str) -> Optional[dict]:
-    """Return {status, reference}. Pending intents past expiry are reported as 'expired'."""
+    """Return {status, reference, failure_reason}. Pending intents past expiry are reported as 'expired'."""
     result = (
         supabase.table("payment_intents")
-        .select("status, reference, expires_at").eq("id", intent_id).execute()
+        .select("status, reference, expires_at, failure_reason").eq("id", intent_id).execute()
     )
     if not result.data:
         return None
@@ -86,8 +86,22 @@ def lookup_intent_status(intent_id: str) -> Optional[dict]:
     if row["status"] == "pending":
         expires_at = datetime.fromisoformat(row["expires_at"].replace("Z", "+00:00"))
         if datetime.now(timezone.utc) > expires_at:
-            return {"status": "expired", "reference": None}
-    return {"status": row["status"], "reference": row.get("reference")}
+            return {"status": "expired", "reference": None, "failure_reason": "Payment session expired before completion."}
+    return {
+        "status": row["status"],
+        "reference": row.get("reference"),
+        "failure_reason": row.get("failure_reason"),
+    }
+
+
+def mark_intent_failed(intent_id: str, reason: str) -> None:
+    """Record why a payment_intent ended in failure so the FE can show the user."""
+    try:
+        supabase.table("payment_intents").update(
+            {"status": "failed", "failure_reason": reason}
+        ).eq("id", intent_id).execute()
+    except Exception:
+        logger.exception(f"Failed to mark intent {intent_id} as failed")
 
 
 # --- Orchestration --------------------------------------------------------
@@ -110,8 +124,9 @@ def complete_payment(intent_id: str, transaction_id: str, provider: str, provide
 
     try:
         check_country_quota(data.country, len(data.members))
-    except QuotaExceededError:
+    except QuotaExceededError as e:
         logger.warning(f"[FAIL] quota exceeded at capture time: {ctx} - MANUAL REFUND")
+        mark_intent_failed(intent_id, e.message)
         return
 
     allocation = allocate_reference(data)
@@ -128,6 +143,7 @@ def complete_payment(intent_id: str, transaction_id: str, provider: str, provide
     except RegistrationInsertError:
         logger.exception(f"[FAIL] member insert, reverting intent: {ctx}")
         revert_intent_to_pending(intent_id)
+        mark_intent_failed(intent_id, "We could not save your registration after payment. Our team has been notified — please contact support with your payment reference.")
         return
 
     amount = float(intent["amount"])
@@ -145,6 +161,7 @@ def complete_payment(intent_id: str, transaction_id: str, provider: str, provide
     except Exception:
         logger.exception(f"[FAIL] payment row insert, rolling back: {ctx}")
         delete_registration(registration_id)
+        mark_intent_failed(intent_id, "Your payment succeeded but we could not save the confirmation. Our team has been notified — please contact support.")
         return
 
     logger.info(f"[OK] payment completed: {ctx} EUR{amount:.2f}")
