@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 
 import stripe
 from fastapi import APIRouter, BackgroundTasks, Request
@@ -10,12 +11,31 @@ from app.models.payment import (
     CreatePaymentResponse,
     PaymentStatusResponse,
 )
+from app.models.registration import MemberInput
 from app.services import payment_service
 from app.services.registration_service import check_country_quota
 from app.services.stripe_service import create_stripe_session, verify_stripe_event
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+EVENT_DATE = date(2026, 8, 15)
+FREE_AGE_UNDER = 5
+
+
+def _age_at(dob: date, event: date) -> int:
+    years = event.year - dob.year
+    if (event.month, event.day) < (dob.month, dob.day):
+        years -= 1
+    return years
+
+
+def _compute_amount(members: list[MemberInput]) -> float:
+    paid = sum(
+        1 for m in members
+        if _age_at(m.dob, EVENT_DATE) >= FREE_AGE_UNDER
+    )
+    return round(paid * settings.price_per_person_eur, 2)
 
 
 @router.post("/create-payment", response_model=CreatePaymentResponse)
@@ -25,15 +45,19 @@ def create_payment(data: CreatePaymentRequest):
     if not settings.stripe_secret_key:
         raise PaymentConfigError()
 
+    amount = _compute_amount(data.members)
+    if amount <= 0:
+        raise PaymentConfigError("No payable members in this registration.")
+
     intent_id = payment_service.create_intent(
-        provider="stripe",
+        provider=data.payment_method,
         payload=data,
-        amount=data.amount,
+        amount=amount,
     )
 
-    payment_url = create_stripe_session(intent_id, data.amount, len(data.members))
+    payment_url = create_stripe_session(intent_id, amount, len(data.members))
 
-    return CreatePaymentResponse(payment_url=payment_url, intent_id=intent_id)
+    return CreatePaymentResponse(payment_url=payment_url, reference=intent_id)
 
 
 @router.get("/payment/status/{intent_id}", response_model=PaymentStatusResponse)

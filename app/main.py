@@ -11,7 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.core.exceptions import AppError
-from app.routers import countries, payment
+from app.routers import payment
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -118,7 +118,6 @@ app.add_middleware(
 )
 
 app.include_router(payment.router)
-app.include_router(countries.router)
 
 
 @app.get("/health")

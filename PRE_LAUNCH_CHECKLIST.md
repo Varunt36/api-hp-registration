@@ -210,7 +210,6 @@ WHERE p.status = 'paid' AND (p.emails_sent = false OR p.emails_sent IS NULL);
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/health` | GET | Health check |
-| `/countries` | GET | List allowed countries from DB (FE source of truth) |
 | `/create-payment` | POST | Create registration + Stripe session |
 | `/register` | POST | Validate registration data only (no DB) |
 | `/webhooks/stripe` | POST | Stripe webhook (called by Stripe, not FE) |

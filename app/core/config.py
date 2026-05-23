@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
 
+    price_per_person_eur: float = 290.0
+
     class Config:
         env_file = ".env"
         extra = "ignore"

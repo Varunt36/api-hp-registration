@@ -1,15 +1,15 @@
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel
 from app.models.registration import RegistrationInput
 
 
 class CreatePaymentRequest(RegistrationInput):
-    amount: float
+    payment_method: Literal["stripe", "paypal"] = "stripe"
 
 
 class CreatePaymentResponse(BaseModel):
     payment_url: str
-    intent_id: str
+    reference: str
 
 
 class PaymentStatusResponse(BaseModel):

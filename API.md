@@ -6,22 +6,6 @@
 
 ---
 
-## GET `/countries`
-
-Return the canonical list of countries open for registration, sourced from the `country_quotas` table. **FE must fetch the country dropdown options from this endpoint** — do not hardcode the list.
-
-### Response — `200 OK`
-
-```json
-[
-  { "code": "AT", "max_members": 50 },
-  { "code": "CH", "max_members": 50 },
-  { "code": "DE", "max_members": 100 }
-]
-```
-
----
-
 ## POST `/create-payment`
 
 Create a payment session for a group registration. Returns a hosted-checkout URL the FE redirects to. Registration is only finalized after the provider webhook confirms payment.
@@ -41,7 +25,7 @@ Create a payment session for a group registration. Returns a hosted-checkout URL
   "country": "DE",
   "karyakarta": "John Doe",
   "terms_accepted": true,
-  "amount": 290.00,
+  "payment_method": "stripe",
   "members": [
     {
       "first_name": "John",
@@ -63,37 +47,41 @@ Create a payment session for a group registration. Returns a hosted-checkout URL
 
 ### Field Reference
 
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `country` | string | Yes | 2-letter ISO code. Must exist in `country_quotas` (fetch the list via `GET /countries`) |
-| `karyakarta` | string | Yes | Group leader / coordinator name (1–200 chars) |
-| `terms_accepted` | boolean | Yes | Must be `true` |
-| `amount` | number | Yes | Total amount in EUR (FE-calculated) |
-| `members` | array | Yes | 1–4 members |
-| `members[].first_name` | string | Yes | 1–100 chars |
-| `members[].last_name` | string | Yes | 1–100 chars |
-| `members[].gender` | string | Yes | `"male"` or `"female"` |
-| `members[].dob` | string | Yes | `YYYY-MM-DD`, not in the future, year ≥ 1900 |
-| `members[].email` | string | **Yes for 1st member**, optional for others | Emails/QR sent here |
-| `members[].phone` | string | No | Digits / spaces / dashes / parens, 7–20 chars |
+| Field                  | Type    | Required                                    | Notes                                                  |
+| ---------------------- | ------- | ------------------------------------------- | ------------------------------------------------------ |
+| `country`              | string  | Yes                                         | 2-letter ISO country code (uppercase)                  |
+| `karyakarta`           | string  | Yes                                         | Group leader / coordinator name (1–200 chars)          |
+| `terms_accepted`       | boolean | Yes                                         | Must be `true`                                         |
+| `payment_method`       | string  | No                                          | `"stripe"` (default). Other values not supported.      |
+| `members`              | array   | Yes                                         | 1–4 members                                            |
+| `members[].first_name` | string  | Yes                                         | 1–100 chars                                            |
+| `members[].last_name`  | string  | Yes                                         | 1–100 chars                                            |
+| `members[].gender`     | string  | Yes                                         | `"male"` or `"female"`                                 |
+| `members[].dob`        | string  | Yes                                         | `YYYY-MM-DD`, not in the future, year ≥ 1900           |
+| `members[].email`      | string  | **Yes for 1st member**, optional for others | Emails/QR sent here                                    |
+| `members[].phone`      | string  | No                                          | Digits / spaces / dashes / parens, 7–20 chars          |
+
+> **Pricing is computed server-side.** Do not send `amount`. The backend charges `PRICE_PER_PERSON_EUR` (default €290, env-overridable) for each member who is **5 or older** on the event date (`2026-08-15`, hardcoded). Members under 5 are free.
 
 ### Success Response — `200 OK`
 
 ```json
 {
   "payment_url": "https://checkout.stripe.com/c/pay/cs_test_...",
-  "reference": "HP-2026-00001"
+  "reference": "8a3f9e1c-2b4d-4f7a-9c0e-1234567890ab"
 }
 ```
 
-**FE action:** redirect the browser to `payment_url`. That's the Stripe-hosted checkout page. After the user approves/pays, the provider redirects back to:
+`reference` is the **payment intent UUID**, used to poll status after redirect-back. The human-readable registration reference (e.g. `HP-2026-00001`) is allocated *after* the Stripe webhook confirms payment, and is returned by `GET /payment/status/{reference}`.
 
-- Success: `{FRONTEND_URL}/payment/success?ref=HP-2026-00001`
-- Cancel:  `{FRONTEND_URL}/payment/cancel`
+**FE action:** persist `reference` (e.g. in `sessionStorage`), then redirect the browser to `payment_url`. After the user approves/pays, Stripe redirects back to:
 
-These two FE routes **must** exist. The `ref` query param is the registration reference.
+- Success: `{FRONTEND_URL}/payment/success?ref={reference}`
+- Cancel: `{FRONTEND_URL}/payment/cancel`
 
-> **Important:** the success redirect happens *before* the registration is finalized. Finalization (members inserted, emails sent) happens on the provider webhook, server-to-server. The success page should either poll `GET /payment/status/{session_id}` or simply tell the user "we're processing — confirmation emails are on the way."
+These two FE routes **must** exist.
+
+> **Important:** the success redirect happens _before_ the registration is finalized. Finalization (members inserted, emails sent) happens on the provider webhook, server-to-server. The success page should poll `GET /payment/status/{reference}` until `status === "paid"` to obtain the final `reference` to show the user.
 
 ### Error Responses
 
@@ -103,27 +91,27 @@ All errors follow the shape:
 { "error": { "code": "QUOTA_EXCEEDED", "message": "…" } }
 ```
 
-| Status | Code | Meaning |
-|---|---|---|
-| `409` | `QUOTA_EXCEEDED` | Country is full |
-| `422` | `VALIDATION_ERROR` | Bad input — `error.details[]` lists each field |
-| `502` | `PAYMENT_PROVIDER_UNREACHABLE` | Provider unreachable — FE: "try again" |
-| `502` | `PAYMENT_PROVIDER_REJECTED` | Provider rejected our request — FE: "contact support" |
-| `503` | `PAYMENT_NOT_CONFIGURED` | Provider credentials missing on backend |
+| Status | Code                           | Meaning                                               |
+| ------ | ------------------------------ | ----------------------------------------------------- |
+| `409`  | `QUOTA_EXCEEDED`               | Country is full                                       |
+| `422`  | `VALIDATION_ERROR`             | Bad input — `error.details[]` lists each field        |
+| `502`  | `PAYMENT_PROVIDER_UNREACHABLE` | Provider unreachable — FE: "try again"                |
+| `502`  | `PAYMENT_PROVIDER_REJECTED`    | Provider rejected our request — FE: "contact support" |
+| `503`  | `PAYMENT_NOT_CONFIGURED`       | Provider credentials missing on backend               |
 
 ---
 
-## GET `/payment/status/{session_id}`
+## GET `/payment/status/{reference}`
 
-Look up payment status by Stripe Checkout Session ID. Useful for FE polling on the success page.
+Look up payment status by the `reference` (intent UUID) returned from `/create-payment`. Useful for FE polling on the success page.
 
 ### Response — `200 OK`
 
 ```json
-{ "status": "paid", "reference": "HP-2026-00001" }
+{ "status": "paid", "reference": "HP-2026-00001", "failure_reason": null }
 ```
 
-`status` is one of: `"paid"`, `"pending"`, `"processing"`, `"not_found"`. `reference` is only set when `"paid"`.
+`status` is one of: `"paid"`, `"pending"`, `"consumed"`, `"expired"`, `"failed"`, `"not_found"`. The `reference` field here is the **human-readable registration reference** (e.g. `HP-2026-00001`), set only when `status === "paid"`. `failure_reason` is set when `status` is `"failed"` or `"expired"`.
 
 ---
 
