@@ -30,10 +30,15 @@ def _load_bytes(filename: str) -> bytes:
 
 _INSTAGRAM_ICON_BYTES = _load_bytes("instagram-icon.png")
 _YOUTUBE_ICON_BYTES = _load_bytes("youtube-icon.png")
+_TRAVEL_ICONS = {
+    "icon-stay":    _load_bytes("lodging.png"),
+    "icon-travel":  _load_bytes("smartphone.png"),
+    "icon-explore": _load_bytes("compass.png"),
+    "icon-info":    _load_bytes("information-button.png"),
+}
 
 _HOTEL_URL = "https://hpam.hariprabodham.de/hotel-offer"
 _EXPLORE_URL = "https://hpam.hariprabodham.de/explore"
-_YOUTUBE_URL = "https://www.youtube.com/@harisumiranDE"
 
 
 def _safe(text: str) -> str:
@@ -87,7 +92,7 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
         .replace("{{WHATSAPP_URL}}", html.escape(settings.whatsapp_group_url))
         .replace("{{TELEGRAM_URL}}", html.escape(settings.telegram_group_url))
         .replace("{{INSTAGRAM_URL}}", html.escape(settings.instagram_url))
-        .replace("{{YOUTUBE_URL}}", html.escape(_YOUTUBE_URL))
+        .replace("{{YOUTUBE_URL}}", html.escape(settings.youtube_url))
         .replace("{{INSTAGRAM_ICON_URL}}", "cid:instagram-icon")
         .replace("{{YOUTUBE_ICON_URL}}", "cid:youtube-icon")
     )
@@ -104,6 +109,12 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
             "content_id": "youtube-icon",
         },
     ])
+    for cid, data in _TRAVEL_ICONS.items():
+        attachments.append({
+            "filename": f"{cid}.png",
+            "content": base64.b64encode(data).decode("utf-8"),
+            "content_id": cid,
+        })
 
     first = html.escape(members_qr[0]["member_name"])
     suffix = "" if len(members_qr) == 1 else f" (+{len(members_qr) - 1})"
