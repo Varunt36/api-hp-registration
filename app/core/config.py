@@ -9,8 +9,10 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
     debug: bool = False
 
-    whatsapp_group_url: str = ""
-    telegram_group_url: str = ""
+    whatsapp_group_url: str = "https://chat.whatsapp.com/your-invite-code"
+    telegram_group_url: str = "https://t.me/+IT1zhtSm-HA3Y2Yy"
+    instagram_url: str = "https://www.instagram.com/hariprabodhamgermany?igsh=NDFrcTBydXdlc3lt&utm_source=qr"
+    youtube_url: str = "https://www.youtube.com/@harisumiranDE"
 
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""

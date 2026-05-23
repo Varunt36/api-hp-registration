@@ -88,6 +88,26 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
         )
         logger.info(f"[WEBHOOK 5/5] background task scheduled — returning 200 to Stripe")
 
+    elif event_type == "checkout.session.async_payment_succeeded":
+        # Fires hours/days after checkout for async methods (SEPA, Klarna, iDEAL, Bancontact, BLIK).
+        # complete_payment is idempotent — safe even if checkout.session.completed already fired.
+        session = event["data"]["object"]
+        intent_id = session.get("client_reference_id")
+        logger.info(f"[WEBHOOK 3/5] checkout.session.async_payment_succeeded: intent_id={intent_id}")
+        if not intent_id:
+            logger.warning(f"[WEBHOOK 4/5] missing client_reference_id (session={session.get('id')}) — cannot complete")
+            return {"status": "ok"}
+        txn = session.get("payment_intent") or session["id"]
+        logger.info(f"[WEBHOOK 4/5] scheduling complete_payment: intent={intent_id} txn={txn}")
+        background_tasks.add_task(
+            payment_service.complete_payment,
+            intent_id=intent_id,
+            transaction_id=txn,
+            provider="stripe",
+            provider_order_id=session.get("id"),
+        )
+        logger.info(f"[WEBHOOK 5/5] background task scheduled — returning 200 to Stripe")
+
     elif event_type == "checkout.session.expired":
         session = event["data"]["object"]
         intent_id = session.get("client_reference_id")

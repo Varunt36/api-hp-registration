@@ -23,6 +23,19 @@ _REGISTRATION_TEMPLATE = _load("registration_email.html")
 _MEMBER_CARD_TEMPLATE = _load("member_card.html")
 
 
+def _load_bytes(filename: str) -> bytes:
+    with open(os.path.join(_TEMPLATE_DIR, filename), "rb") as f:
+        return f.read()
+
+
+_INSTAGRAM_ICON_BYTES = _load_bytes("instagram-icon.png")
+_YOUTUBE_ICON_BYTES = _load_bytes("youtube-icon.png")
+
+_HOTEL_URL = "https://hpam.hariprabodham.de/hotel-offer"
+_EXPLORE_URL = "https://hpam.hariprabodham.de/explore"
+_YOUTUBE_URL = "https://www.youtube.com/@harisumiranDE"
+
+
 def _safe(text: str) -> str:
     """Strip CR/LF/NUL (header-injection defense) and HTML-escape."""
     return html.escape(text.replace("\r", "").replace("\n", "").replace("\0", "").strip())
@@ -69,18 +82,34 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
     body = (
         _REGISTRATION_TEMPLATE
         .replace("{{MEMBERS_SECTION}}", "\n".join(cards))
-        .replace("{{TRAVEL_URL}}", html.escape(settings.frontend_url.rstrip("/") + "/explore"))
+        .replace("{{HOTEL_URL}}", html.escape(_HOTEL_URL))
+        .replace("{{TRAVEL_URL}}", html.escape(_EXPLORE_URL))
         .replace("{{WHATSAPP_URL}}", html.escape(settings.whatsapp_group_url))
         .replace("{{TELEGRAM_URL}}", html.escape(settings.telegram_group_url))
+        .replace("{{INSTAGRAM_URL}}", html.escape(settings.instagram_url))
+        .replace("{{YOUTUBE_URL}}", html.escape(_YOUTUBE_URL))
+        .replace("{{INSTAGRAM_ICON_URL}}", "cid:instagram-icon")
+        .replace("{{YOUTUBE_ICON_URL}}", "cid:youtube-icon")
     )
+
+    attachments.extend([
+        {
+            "filename": "instagram-icon.png",
+            "content": base64.b64encode(_INSTAGRAM_ICON_BYTES).decode("utf-8"),
+            "content_id": "instagram-icon",
+        },
+        {
+            "filename": "youtube-icon.png",
+            "content": base64.b64encode(_YOUTUBE_ICON_BYTES).decode("utf-8"),
+            "content_id": "youtube-icon",
+        },
+    ])
 
     first = html.escape(members_qr[0]["member_name"])
     suffix = "" if len(members_qr) == 1 else f" (+{len(members_qr) - 1})"
     subject = f"HariPrabodham Germany 2026 Registration Confirmation - {first}{suffix}"
 
-    payload = {"from": settings.resend_from_email, "to": [to], "subject": subject, "html": body}
-    if attachments:
-        payload["attachments"] = attachments
+    payload = {"from": settings.resend_from_email, "to": [to], "subject": subject, "html": body, "attachments": attachments}
 
     resend.Emails.send(payload)
     logger.info(f"Sent registration email ({len(members_qr)} members) to {_mask_email(to)}")

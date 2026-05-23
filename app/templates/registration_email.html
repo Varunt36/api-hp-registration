@@ -3,39 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="x-apple-disable-message-reformatting" />
     <title>HariPrabodham Germany 2026 — Registration Confirmed</title>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap");
 
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+      /* Reset */
+      body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+      table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; border-collapse: collapse; }
+      img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
 
       body {
-        font-family: "Source Sans 3", sans-serif;
-        background: #f4eef7;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        font-family: "Source Sans 3", Helvetica, Arial, sans-serif;
+        background-color: #f4eef7;
         color: #2d1b4e;
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        padding: 32px 16px;
       }
 
       .email-wrapper {
         max-width: 600px;
         width: 100%;
+        margin: 0 auto;
         background: #ffffff;
         border-radius: 14px;
         overflow: hidden;
         box-shadow: 0 4px 20px rgba(75, 30, 120, 0.1);
       }
 
-      /* ==========  HEADER (compact)  ========== */
+      /* ==========  HEADER  ========== */
       .header {
         background: linear-gradient(135deg, #4a2872 0%, #6b3fa0 100%);
-        padding: 26px 32px 22px;
+        background-color: #4a2872; /* Outlook fallback */
+        padding: 28px 32px 22px;
         text-align: center;
         position: relative;
         overflow: hidden;
@@ -50,31 +51,34 @@
         border-radius: 50%;
         background: rgba(232, 178, 90, 0.14);
       }
-      .header .org {
-        position: relative;
-        font-family: "Cormorant Garamond", serif;
-        font-size: 13px;
-        letter-spacing: 3px;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.75);
-        margin-bottom: 4px;
-      }
       .header h1 {
         position: relative;
-        font-family: "Playfair Display", serif;
-        font-size: 24px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 26px;
         font-weight: 600;
-        color: #fff;
+        color: #ffffff;
         line-height: 1.2;
+        letter-spacing: 0.5px;
+        margin: 0;
+      }
+      .header .event-location {
+        position: relative;
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 8px;
       }
       .header .event-date {
         position: relative;
-        font-family: "Cormorant Garamond", serif;
-        font-style: italic;
-        font-size: 14px;
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 16px;
+        font-weight: 600;
         color: #f0b85e;
-        margin-top: 6px;
-        letter-spacing: 1px;
+        margin-top: 8px;
+        letter-spacing: 1.2px;
       }
 
       /* ==========  GREETING  ========== */
@@ -85,7 +89,7 @@
         text-align: center;
       }
       .greeting .slogan {
-        font-family: "Cormorant Garamond", serif;
+        font-family: "Cormorant Garamond", Georgia, serif;
         font-style: italic;
         font-size: 20px;
         font-weight: 600;
@@ -94,7 +98,7 @@
         line-height: 1.3;
       }
       .greeting .slogan-translate {
-        font-family: "Cormorant Garamond", serif;
+        font-family: "Cormorant Garamond", Georgia, serif;
         font-style: italic;
         font-size: 13px;
         color: #9c8eb0;
@@ -103,30 +107,26 @@
       }
 
       /* ==========  BODY  ========== */
-      .body-content {
-        padding: 32px;
-      }
+      .body-content { padding: 32px; }
 
       .intro {
         font-size: 14px;
         line-height: 1.65;
         color: #5a4a72;
         text-align: center;
-        margin-bottom: 22px;
+        margin: 0 0 22px;
       }
 
-      .confirmed {
-        text-align: center;
-        margin-bottom: 20px;
-      }
+      .confirmed { text-align: center; margin-bottom: 20px; }
       .confirmed h2 {
-        font-family: "Playfair Display", serif;
+        font-family: "Playfair Display", Georgia, serif;
         font-size: 20px;
         color: #4a2872;
         font-weight: 600;
+        margin: 0;
       }
 
-      /* ==========  ENTRY PASS (with ref number inside)  ========== */
+      /* ==========  ENTRY PASS  ========== */
       .pass-card {
         margin: 0 0 16px;
         border: 2px solid #e6d4f5;
@@ -135,9 +135,10 @@
       }
       .pass-card-header {
         background: linear-gradient(135deg, #4a2872, #6b3fa0);
+        background-color: #4a2872;
         padding: 10px 20px;
         text-align: center;
-        font-family: "Playfair Display", serif;
+        font-family: "Playfair Display", Georgia, serif;
         font-size: 11px;
         letter-spacing: 3px;
         text-transform: uppercase;
@@ -147,10 +148,11 @@
       .pass-card-body {
         padding: 24px 24px 20px;
         text-align: center;
-        background: linear-gradient(180deg, #faf6fd, #fff);
+        background: linear-gradient(180deg, #faf6fd, #ffffff);
+        background-color: #faf6fd;
       }
       .pass-name {
-        font-family: "Playfair Display", serif;
+        font-family: "Playfair Display", Georgia, serif;
         font-size: 20px;
         font-weight: 700;
         color: #4a2872;
@@ -182,7 +184,15 @@
         letter-spacing: 0.5px;
       }
 
-      /* ==========  ORNAMENT DIVIDER  ========== */
+      .pass-instruction {
+        text-align: center;
+        font-size: 13px;
+        color: #6b5a82;
+        margin: 14px 8px 0;
+        line-height: 1.55;
+      }
+
+      /* ==========  ORNAMENT  ========== */
       .ornament {
         text-align: center;
         margin: 32px 0 18px;
@@ -192,7 +202,7 @@
       }
       .section-title {
         text-align: center;
-        font-family: "Playfair Display", serif;
+        font-family: "Playfair Display", Georgia, serif;
         font-size: 18px;
         color: #4a2872;
         font-weight: 600;
@@ -201,82 +211,93 @@
 
       /* ==========  TRAVEL ROW  ========== */
       .travel-row {
-        display: table;
         width: 100%;
         border-collapse: separate;
         border-spacing: 8px 0;
         margin-bottom: 16px;
       }
       .travel-cell {
-        display: table-cell;
         width: 25%;
         text-align: center;
         background: #faf6fd;
         border: 1px solid #ede0f5;
         border-radius: 10px;
-        padding: 12px 6px;
+        padding: 14px 6px;
         vertical-align: middle;
       }
       .travel-cell .icon {
-        font-size: 16px;
-        margin-bottom: 3px;
+        line-height: 0;
+        margin-bottom: 6px;
       }
       .travel-cell .label {
-        font-family: "Source Sans 3", sans-serif;
+        font-family: "Source Sans 3", Helvetica, Arial, sans-serif;
         font-size: 11px;
         font-weight: 600;
         color: #4a2872;
-        letter-spacing: 0.3px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
       }
 
-      .cta-section {
-        text-align: center;
-        margin-top: 14px;
-      }
+      .cta-section { text-align: center; margin-top: 14px; font-size: 0; }
       .cta-btn {
         display: inline-block;
         background: linear-gradient(135deg, #4a2872, #6b3fa0);
-        color: #fff;
+        background-color: #4a2872;
+        color: #ffffff;
         text-decoration: none;
         padding: 11px 28px;
         border-radius: 50px;
         font-size: 13px;
         font-weight: 600;
         letter-spacing: 0.5px;
-        box-shadow: 0 3px 10px rgba(75, 30, 120, 0.22);
+        margin: 4px 6px;
+      }
+      .cta-btn.secondary {
+        background: #f0b85e;
+        background-color: #f0b85e;
+        color: #4a2872;
+        font-weight: 700;
       }
 
       /* ==========  COMMUNITY  ========== */
-      .community {
-        text-align: center;
-        margin-top: 8px;
-      }
+      .community { text-align: center; margin-top: 8px; }
       .community-text {
         font-size: 13px;
         color: #6b5a82;
-        margin-bottom: 14px;
+        margin: 0 0 14px;
         line-height: 1.5;
       }
-      .community-buttons {
-        font-size: 0; /* removes inline-block whitespace */
-      }
+      .community-buttons { font-size: 0; margin-bottom: 20px; }
       .comm-btn {
         display: inline-block;
-        color: #fff;
+        color: #ffffff;
         text-decoration: none;
         padding: 10px 20px;
         border-radius: 50px;
         font-size: 12px;
         font-weight: 600;
         letter-spacing: 0.3px;
-        margin: 4px 4px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin: 4px;
       }
-      .comm-btn.whatsapp {
-        background: #25d366;
+      .comm-btn.whatsapp { background: #25d366; background-color: #25d366; }
+      .comm-btn.telegram { background: #229ed9; background-color: #229ed9; }
+
+      .follow-label {
+        font-size: 12px;
+        color: #6b5a82;
+        margin: 0 0 10px;
+        letter-spacing: 0.3px;
       }
-      .comm-btn.telegram {
-        background: #229ed9;
+      .social-icons { font-size: 0; }
+      .social-icon {
+        display: inline-block;
+        margin: 0 10px;
+        vertical-align: middle;
+        text-decoration: none;
+      }
+      .social-icon img {
+        display: block;
+        border: 0;
       }
 
       .private-note {
@@ -287,9 +308,10 @@
         line-height: 1.4;
       }
 
-      /* ==========  FOOTER (compact)  ========== */
+      /* ==========  FOOTER  ========== */
       .footer {
         background: #4a2872;
+        background-color: #4a2872;
         padding: 18px 32px;
         text-align: center;
       }
@@ -310,114 +332,147 @@
 
       /* ==========  MOBILE  ========== */
       @media screen and (max-width: 600px) {
-        .body-content,
-        .header,
-        .greeting,
-        .footer {
-          padding-left: 20px;
-          padding-right: 20px;
+        .body-content, .header, .greeting, .footer {
+          padding-left: 20px !important;
+          padding-right: 20px !important;
         }
-        .header h1 {
-          font-size: 20px;
-        }
-        .travel-cell {
-          padding: 10px 4px;
-        }
-        .travel-cell .label {
-          font-size: 10px;
-        }
+        .header h1 { font-size: 22px !important; }
+        .travel-cell { padding: 10px 4px !important; }
+        .travel-cell .label { font-size: 10px !important; }
       }
     </style>
   </head>
-  <body>
-    <div class="email-wrapper">
-      <!-- Header (compact) -->
-      <div class="header">
-        <div class="org">HariPrabodham &middot; Amrut Mahotsav</div>
-        <h1>Germany 2026</h1>
-        <div class="event-date">
-          15 &middot; 16 &middot; 17 August &mdash; Berlin
-        </div>
-      </div>
+  <body style="margin:0; padding:0; background-color:#f4eef7;">
+    <!-- Outer table for guaranteed centering across all clients -->
+    <table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f4eef7;">
+      <tr>
+        <td align="center" style="padding: 32px 16px;">
+          <!-- Email content wrapper -->
+          <table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px; width:100%;" class="email-wrapper">
+            <tr>
+              <td>
+                <!-- Header -->
+                <div class="header">
+                  <h1>HariPrabodham &middot; Amrut Mahotsav</h1>
+                  <div class="event-location">Germany 2026</div>
+                  <div class="event-date">15 &middot; 16 &middot; 17 August &mdash; Berlin</div>
+                </div>
 
-      <!-- Slogan -->
-      <div class="greeting">
-        <div class="slogan">Na me rahoo na meri arzoo rahe</div>
-        <div class="slogan-translate">May neither I nor my desires remain.</div>
-      </div>
+                <!-- Slogan -->
+                <div class="greeting">
+                  <div class="slogan">Na me rahoo na meri arzoo rahe</div>
+                  <div class="slogan-translate">May neither I nor my desires remain.</div>
+                </div>
 
-      <!-- Body -->
-      <div class="body-content">
-        <p class="intro">
-          Jai Swaminarayan Das Na Das Banavsoiji. Thank you for registering for
-          HariPrabodham Amrut Mahotsav Germany 2026. We are blessed to welcome
-          you in Berlin.
-        </p>
+                <!-- Body -->
+                <div class="body-content">
+                  <p class="intro">
+                    Jai Swaminarayan Das Na Das Banavsoiji. Thank you for registering for
+                    HariPrabodham Amrut Mahotsav Germany 2026. We are blessed to welcome
+                    you in Berlin.
+                  </p>
 
-        <div class="confirmed">
-          <h2>Registration Confirmed</h2>
-        </div>
+                  <div class="confirmed">
+                    <h2>Registration Confirmed</h2>
+                  </div>
 
-        <!-- Entry Pass cards (one per member, injected dynamically) -->
-        {{MEMBERS_SECTION}}
+                  <!-- Entry Pass cards (one per member, injected dynamically) -->
+                  {{MEMBERS_SECTION}}
 
-        <!-- Travel -->
-        <div class="ornament">&#10086; &mdash; &#10086;</div>
-        <div class="section-title">Plan Your Trip</div>
+                  <p class="pass-instruction">
+                    Please show this QR code at Registration Desk to collect your Shibir Badge. Thank you.
+                  </p>
 
-        <div class="travel-row">
-          <div class="travel-cell">
-            <div class="icon">&#127968;</div>
-            <div class="label">Stay</div>
-          </div>
-          <div class="travel-cell">
-            <div class="icon">&#128663;</div>
-            <div class="label">Travel</div>
-          </div>
-          <div class="travel-cell">
-            <div class="icon">&#127757;</div>
-            <div class="label">Explore</div>
-          </div>
-          <div class="travel-cell">
-            <div class="icon">&#128220;</div>
-            <div class="label">Info</div>
-          </div>
-        </div>
+                  <!-- Travel -->
+                  <div class="ornament">&#10086; &mdash; &#10086;</div>
+                  <div class="section-title">Plan Your Trip</div>
 
-        <div class="cta-section">
-          <a href="{{TRAVEL_URL}}" class="cta-btn">Open Travel Guide &rarr;</a>
-        </div>
+                  <table class="travel-row" role="presentation">
+                    <tr>
+                      <td class="travel-cell">
+                        <div class="icon">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4a2872" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M3 18v-7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v7"/><path d="M3 14h18"/><path d="M3 18v2M21 18v2"/><path d="M7 9V7a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 13 7v2"/></svg>
+                        </div>
+                        <div class="label">Stay</div>
+                      </td>
+                      <td class="travel-cell">
+                        <div class="icon">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4a2872" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M16 10h4a2 2 0 0 1 0 4h-4l-4 7h-3l2-7H7l-2 2H2l1.5-4L2 8h3l2 2h4L9 3h3l4 7z"/></svg>
+                        </div>
+                        <div class="label">Travel</div>
+                      </td>
+                      <td class="travel-cell">
+                        <div class="icon">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4a2872" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M12 22s-8-7.582-8-13a8 8 0 0 1 16 0c0 5.418-8 13-8 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                        </div>
+                        <div class="label">Explore</div>
+                      </td>
+                      <td class="travel-cell">
+                        <div class="icon">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4a2872" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r="0.9" fill="#4a2872" stroke="none"/></svg>
+                        </div>
+                        <div class="label">Info</div>
+                      </td>
+                    </tr>
+                  </table>
 
-        <!-- Community -->
-        <div class="ornament">&#10086; &mdash; &#10086;</div>
-        <div class="section-title">Stay Connected</div>
+                  <div class="cta-section">
+                    <a href="{{HOTEL_URL}}" class="cta-btn secondary">Book Hotel</a>
+                    <a href="{{TRAVEL_URL}}" class="cta-btn">Open Travel Guide &rarr;</a>
+                  </div>
 
-        <div class="community">
-          <p class="community-text">
-            Join our community channels for event updates and announcements.
-          </p>
-          <div class="community-buttons">
-            <a href="https://chat.whatsapp.com/F7VNjfU4smCAvLsDnmxcrZ" class="comm-btn whatsapp"
-              >WhatsApp Group</a
-            >
-            <a href="https://t.me/+IT1zhtSm-HA3Y2Yy" class="comm-btn telegram"
-              >Telegram Channel</a
-            >
-          </div>
-          <p class="private-note">
-            These invite links are private. Please do not share publicly.
-          </p>
-        </div>
-      </div>
+                  <!-- Community -->
+                  <div class="ornament">&#10086; &mdash; &#10086;</div>
+                  <div class="section-title">Stay Connected</div>
 
-      <!-- Footer (compact) -->
-      <div class="footer">
-        <div class="contact">
-          Questions?
-          <a href="mailto:info@yds-germany.de">info@yds-germany.de</a>
-        </div>
-        <div class="copyright">&copy; 2026 Yogi Divine Society Germany</div>
-      </div>
-    </div>
+                  <div class="community">
+                    <p class="community-text">
+                      Join our community channels for event updates and announcements.
+                    </p>
+
+                    <div class="community-buttons">
+                      <a href="{{WHATSAPP_URL}}" class="comm-btn whatsapp">
+                        <span style="display:inline-block; vertical-align:middle; margin-right:6px;">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.247-.694.247-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413"/></svg>
+                        </span>WhatsApp
+                      </a>
+                      <a href="{{TELEGRAM_URL}}" class="comm-btn telegram">
+                        <span style="display:inline-block; vertical-align:middle; margin-right:6px;">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.231-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                        </span>Telegram
+                      </a>
+                    </div>
+
+                    <p class="follow-label">Follow us on for more information</p>
+
+                    <div class="social-icons">
+                      <a href="{{INSTAGRAM_URL}}" class="social-icon" aria-label="Instagram">
+                        <img src="{{INSTAGRAM_ICON_URL}}" alt="Instagram" width="36" height="36" />
+                      </a>
+                      <a href="{{YOUTUBE_URL}}" class="social-icon" aria-label="YouTube">
+                        <img src="{{YOUTUBE_ICON_URL}}" alt="YouTube" width="52" height="38" />
+                      </a>
+                    </div>
+
+                    <p class="private-note">
+                      These invite links are private. Please do not share publicly.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="footer">
+                  <div class="contact">
+                    Questions?
+                    <a href="mailto:info@yds-germany.de">info@yds-germany.de</a>
+                  </div>
+                  <div class="copyright">&copy; 2026 Yogi Divine Society Germany</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>
