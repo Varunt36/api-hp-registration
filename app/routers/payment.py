@@ -8,11 +8,9 @@ from app.core.exceptions import PaymentConfigError, WebhookVerificationError
 from app.models.payment import (
     CreatePaymentRequest,
     CreatePaymentResponse,
-    PaymentMethod,
     PaymentStatusResponse,
 )
 from app.services import payment_service
-from app.services.paypal_service import create_paypal_order, verify_paypal_webhook
 from app.services.registration_service import check_country_quota
 from app.services.stripe_service import create_stripe_session, verify_stripe_event
 
@@ -24,24 +22,16 @@ router = APIRouter()
 def create_payment(data: CreatePaymentRequest):
     check_country_quota(data.country, len(data.members))
 
-    if data.payment_method == PaymentMethod.stripe and not settings.stripe_secret_key:
-        raise PaymentConfigError()
-    if data.payment_method == PaymentMethod.paypal and not (
-        settings.paypal_client_id and settings.paypal_client_secret
-    ):
+    if not settings.stripe_secret_key:
         raise PaymentConfigError()
 
-    amount = len(data.members) * settings.payment_amount_per_member
     intent_id = payment_service.create_intent(
-        provider=data.payment_method.value,
+        provider="stripe",
         payload=data,
-        amount=amount,
+        amount=data.amount,
     )
 
-    if data.payment_method == PaymentMethod.stripe:
-        payment_url = create_stripe_session(intent_id, amount, len(data.members))
-    else:
-        payment_url, _ = create_paypal_order(intent_id, amount)
+    payment_url = create_stripe_session(intent_id, data.amount, len(data.members))
 
     return CreatePaymentResponse(payment_url=payment_url, intent_id=intent_id)
 
@@ -111,51 +101,6 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
         logger.info(f"[WEBHOOK 3/5] checkout.session.async_payment_failed: intent_id={intent_id}")
         if intent_id:
             payment_service.mark_intent_failed(intent_id, "Your payment could not be completed (the bank or wallet rejected it). Please try again with a different method.")
-
-    else:
-        logger.info(f"[WEBHOOK 3/5] event type {event_type} not handled — returning 200")
-
-    return {"status": "ok"}
-
-
-@router.post("/webhooks/paypal")
-async def paypal_webhook(request: Request, background_tasks: BackgroundTasks):
-    raw_body = await request.body()
-    headers = {k.lower(): v for k, v in request.headers.items()}
-    logger.info(f"[WEBHOOK 1/5] PayPal POST received: body={len(raw_body)} bytes")
-    event = verify_paypal_webhook(headers, raw_body)
-
-    event_type = event.get("event_type", "")
-    logger.info(f"[WEBHOOK 2/5] PayPal signature verified: event_type={event_type}")
-
-    if event_type == "PAYMENT.CAPTURE.COMPLETED":
-        resource = event.get("resource", {})
-        intent_id = resource.get("custom_id")
-        transaction_id = resource.get("id")
-        order_id = resource.get("supplementary_data", {}).get("related_ids", {}).get("order_id")
-        logger.info(f"[WEBHOOK 3/5] PAYMENT.CAPTURE.COMPLETED: intent={intent_id} txn={transaction_id} order={order_id}")
-        if intent_id and transaction_id:
-            background_tasks.add_task(
-                payment_service.complete_payment,
-                intent_id=intent_id,
-                transaction_id=transaction_id,
-                provider="paypal",
-                provider_order_id=order_id,
-            )
-            logger.info(f"[WEBHOOK 5/5] background task scheduled — returning 200 to PayPal")
-        else:
-            logger.warning(f"[WEBHOOK 4/5] missing identifiers: intent={intent_id} txn={transaction_id} — cannot complete")
-
-    elif event_type in ("PAYMENT.CAPTURE.DENIED", "PAYMENT.CAPTURE.DECLINED", "CHECKOUT.ORDER.VOIDED"):
-        resource = event.get("resource", {})
-        intent_id = resource.get("custom_id") or (
-            (resource.get("purchase_units") or [{}])[0].get("custom_id")
-        )
-        status_details = resource.get("status_details") or {}
-        reason = status_details.get("reason") or "Your PayPal payment was not completed."
-        logger.info(f"[WEBHOOK 3/5] {event_type}: intent={intent_id} reason={reason}")
-        if intent_id:
-            payment_service.mark_intent_failed(intent_id, f"PayPal declined the payment: {reason}. Please try again or use a different payment method.")
 
     else:
         logger.info(f"[WEBHOOK 3/5] event type {event_type} not handled — returning 200")

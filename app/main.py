@@ -11,7 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.core.exceptions import AppError
-from app.routers import admin, payment
+from app.routers import countries, payment
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -33,9 +33,6 @@ logger.info("=" * 70)
 logger.info("HP Registration API starting")
 logger.info(f"  STRIPE_SECRET_KEY     = {_mask(settings.stripe_secret_key)}")
 logger.info(f"  STRIPE_WEBHOOK_SECRET = {_mask(settings.stripe_webhook_secret)}")
-logger.info(f"  PAYPAL_MODE           = {settings.paypal_mode}")
-logger.info(f"  PAYPAL_CLIENT_ID      = {_mask(settings.paypal_client_id)}")
-logger.info(f"  PAYPAL_WEBHOOK_ID     = {_mask(settings.paypal_webhook_id)}")
 logger.info(f"  RESEND_API_KEY        = {_mask(settings.resend_api_key)}")
 logger.info(f"  RESEND_FROM_EMAIL     = {settings.resend_from_email}")
 logger.info(f"  FRONTEND_URL          = {settings.frontend_url}")
@@ -121,7 +118,7 @@ app.add_middleware(
 )
 
 app.include_router(payment.router)
-app.include_router(admin.router)
+app.include_router(countries.router)
 
 
 @app.get("/health")

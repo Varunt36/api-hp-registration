@@ -1,9 +1,8 @@
 import logging
-from datetime import date
 
 from app.core.exceptions import QuotaExceededError, RegistrationInsertError
 from app.core.supabase import supabase
-from app.models.registration import Gender, MemberInput, RegistrationInput
+from app.models.registration import RegistrationInput
 from app.services.email_service import send_combined_qr_email
 from app.services.qr_service import generate_qr_image
 
@@ -11,10 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 def check_country_quota(country: str, new_member_count: int) -> None:
-    """Raise QuotaExceededError if adding members would exceed the country's limit."""
+    """Raise QuotaExceededError if adding members would exceed the country's limit,
+    or if the country is not registered in country_quotas (DB is the source of truth)."""
     quota = supabase.table("country_quotas").select("max_members").eq("country_code", country).execute()
     if not quota.data:
-        return
+        raise QuotaExceededError(country)
     max_allowed = quota.data[0]["max_members"]
 
     paid = (
@@ -116,31 +116,3 @@ def process_qr_and_emails(registration_id: str, members_data: list, primary_emai
         except Exception:
             logger.exception(f"Email send failed for {reference}")
     return sent
-
-
-def create_admin_registration(full_name: str, email: str, dob: date, gender: Gender, country: str) -> dict:
-    """Admin-only path: insert one registration row + one member, no payment, no QR, no email.
-
-    Quota note: admin rows don't have a payment, so they don't count toward future quota checks
-    (which filter for paid rows). Admins can push past the cap — acceptable for comp/walk-in use.
-    """
-    parts = full_name.strip().split(maxsplit=1)
-    first_name = parts[0]
-    last_name = parts[1] if len(parts) > 1 else "-"
-
-    check_country_quota(country, new_member_count=1)
-
-    reg_input = RegistrationInput(
-        country=country,
-        karyakarta="Admin",
-        terms_accepted=True,
-        members=[MemberInput(first_name=first_name, last_name=last_name, gender=gender, dob=dob, email=email)],
-    )
-    allocation = allocate_reference(reg_input)
-    insert_result = insert_registration_members(allocation["registration_id"], allocation["reference"], reg_input)
-
-    logger.info(f"Admin registration created: {allocation['reference']}")
-    return {
-        "reference": allocation["reference"],
-        "ticket_number": insert_result["members_data"][0]["ticket_number"],
-    }

@@ -35,18 +35,13 @@ DEBUG=false                                     # MUST be false in production
 STRIPE_SECRET_KEY=sk_live_xxxxxxxx            # dashboard.stripe.com/apikeys (LIVE mode)
 STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxx          # From Stripe webhook endpoint (Step 3)
 
-# ── Pricing ──
-PAYMENT_AMOUNT_PER_MEMBER=250.00
-
 # ── Email Images (host on Supabase Storage or CDN) ──
 EMAIL_BANNER_URL=https://your-cdn/banner.png
 EMAIL_LOGO_URL=https://your-cdn/logo.png
 
 # ── Social Links (sent in email after payment) ──
 WHATSAPP_GROUP_URL=https://chat.whatsapp.com/your-group
-WHATSAPP_QR_URL=https://your-cdn/whatsapp-qr.png
-TELEGRAM_GROUP_URL=https://t.me/your-channel
-TELEGRAM_QR_URL=https://your-cdn/telegram-qr.png
+TELEGRAM_GROUP_URL=https://t.me/+IT1zhtSm-HA3Y2Yy
 INSTAGRAM_URL=https://instagram.com/your-page
 YOUTUBE_URL=https://youtube.com/your-channel
 ```
@@ -71,7 +66,6 @@ YOUTUBE_URL=https://youtube.com/your-channel
 2. Enable the methods you want:
    - [x] Card (Visa, Mastercard, Amex)
    - [x] PayPal (if needed)
-   - [ ] Others (Google Pay, Apple Pay, etc.)
 
 ---
 
@@ -216,6 +210,7 @@ WHERE p.status = 'paid' AND (p.emails_sent = false OR p.emails_sent IS NULL);
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/health` | GET | Health check |
+| `/countries` | GET | List allowed countries from DB (FE source of truth) |
 | `/create-payment` | POST | Create registration + Stripe session |
 | `/register` | POST | Validate registration data only (no DB) |
 | `/webhooks/stripe` | POST | Stripe webhook (called by Stripe, not FE) |

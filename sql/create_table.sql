@@ -56,8 +56,8 @@ CREATE TABLE payments (
                                   CHECK (status IN ('pending', 'paid', 'failed')),
   amount           NUMERIC(10, 2) NOT NULL CHECK (amount > 0),
   currency         TEXT           NOT NULL DEFAULT 'EUR',
-  payment_method   TEXT           CHECK (payment_method IN ('stripe', 'paypal')),
-  transaction_id   TEXT           UNIQUE,     -- from Stripe / PayPal webhook
+  payment_method   TEXT           CHECK (payment_method IN ('stripe')),
+  transaction_id   TEXT           UNIQUE,     -- from Stripe webhook
   paid_at          TIMESTAMPTZ,               -- set when status becomes 'paid'
   created_at       TIMESTAMPTZ    NOT NULL DEFAULT now()
 );

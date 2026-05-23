@@ -15,13 +15,6 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
 
-    paypal_client_id: str = ""
-    paypal_client_secret: str = ""
-    paypal_webhook_id: str = ""
-    paypal_mode: str = "sandbox"  # "sandbox" | "live"
-
-    payment_amount_per_member: float = 290.00
-
     class Config:
         env_file = ".env"
         extra = "ignore"

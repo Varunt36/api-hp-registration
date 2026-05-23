@@ -6,6 +6,22 @@
 
 ---
 
+## GET `/countries`
+
+Return the canonical list of countries open for registration, sourced from the `country_quotas` table. **FE must fetch the country dropdown options from this endpoint** — do not hardcode the list.
+
+### Response — `200 OK`
+
+```json
+[
+  { "code": "AT", "max_members": 50 },
+  { "code": "CH", "max_members": 50 },
+  { "code": "DE", "max_members": 100 }
+]
+```
+
+---
+
 ## POST `/create-payment`
 
 Create a payment session for a group registration. Returns a hosted-checkout URL the FE redirects to. Registration is only finalized after the provider webhook confirms payment.
@@ -25,7 +41,7 @@ Create a payment session for a group registration. Returns a hosted-checkout URL
   "country": "DE",
   "karyakarta": "John Doe",
   "terms_accepted": true,
-  "payment_method": "paypal",
+  "amount": 290.00,
   "members": [
     {
       "first_name": "John",
@@ -49,10 +65,10 @@ Create a payment session for a group registration. Returns a hosted-checkout URL
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `country` | string | Yes | One of: `DE`, `AT`, `CH`, `GB`, `US`, `IN`, `NZ` |
+| `country` | string | Yes | 2-letter ISO code. Must exist in `country_quotas` (fetch the list via `GET /countries`) |
 | `karyakarta` | string | Yes | Group leader / coordinator name (1–200 chars) |
 | `terms_accepted` | boolean | Yes | Must be `true` |
-| `payment_method` | string | Yes | `"stripe"` or `"paypal"` |
+| `amount` | number | Yes | Total amount in EUR (FE-calculated) |
 | `members` | array | Yes | 1–4 members |
 | `members[].first_name` | string | Yes | 1–100 chars |
 | `members[].last_name` | string | Yes | 1–100 chars |
@@ -65,12 +81,12 @@ Create a payment session for a group registration. Returns a hosted-checkout URL
 
 ```json
 {
-  "payment_url": "https://www.paypal.com/checkoutnow?token=...",
+  "payment_url": "https://checkout.stripe.com/c/pay/cs_test_...",
   "reference": "HP-2026-00001"
 }
 ```
 
-**FE action:** redirect the browser to `payment_url`. That's the provider-hosted checkout page (Stripe Checkout or PayPal approval). After the user approves/pays, the provider redirects back to:
+**FE action:** redirect the browser to `payment_url`. That's the Stripe-hosted checkout page. After the user approves/pays, the provider redirects back to:
 
 - Success: `{FRONTEND_URL}/payment/success?ref=HP-2026-00001`
 - Cancel:  `{FRONTEND_URL}/payment/cancel`
@@ -99,7 +115,7 @@ All errors follow the shape:
 
 ## GET `/payment/status/{session_id}`
 
-**Stripe only today.** Look up payment status by Stripe Checkout Session ID. Useful for FE polling on the success page.
+Look up payment status by Stripe Checkout Session ID. Useful for FE polling on the success page.
 
 ### Response — `200 OK`
 
@@ -109,13 +125,11 @@ All errors follow the shape:
 
 `status` is one of: `"paid"`, `"pending"`, `"processing"`, `"not_found"`. `reference` is only set when `"paid"`.
 
-> PayPal does not currently have an equivalent endpoint — for PayPal, rely on the confirmation email or have the success page show a "processing" state.
-
 ---
 
 ## What happens after a successful payment?
 
-The provider webhook (`/webhooks/stripe` or `/webhooks/paypal`) fires server-to-server. The backend then:
+The Stripe webhook (`/webhooks/stripe`) fires server-to-server. The backend then:
 
 1. Inserts each member with a unique ticket number (e.g. `HP-2026-00001-M1`, `HP-2026-00001-M2`)
 2. Generates a QR code per member (encodes the ticket number)
@@ -124,72 +138,6 @@ The provider webhook (`/webhooks/stripe` or `/webhooks/paypal`) fires server-to-
    - **Travel guide** — event travel information
    - **WhatsApp & Instagram** — social media QR codes to connect
 4. If a member has no email, all 3 emails go to the first member's email instead
-
----
-
-## POST `/admin/registration`
-
-Admin-only. Insert a registration directly into the DB, **bypassing payment** (no Stripe session, no payment row, no QR code, no emails). Useful for manual entries (comps, sponsors, on-the-day walk-ins).
-
-### Auth
-
-The request MUST include a Supabase Auth JWT in `Authorization: Bearer <jwt>`. The backend verifies the token against Supabase and checks that the user has `app_metadata.role = "admin"`.
-
-- The role MUST live in `app_metadata` (server-set via the service role key). `user_metadata` is user-editable and is intentionally ignored for authorization.
-- To grant admin to a user, set `raw_app_meta_data` on `auth.users`:
-  ```sql
-  update auth.users
-  set raw_app_meta_data = jsonb_set(coalesce(raw_app_meta_data, '{}'::jsonb), '{role}', '"admin"')
-  where email = 'admin@example.com';
-  ```
-  The change appears in the JWT after the user's next token refresh.
-- The endpoint is rate-limited (20 req/min per IP).
-
-### Request
-
-```json
-{
-  "full_name": "Jane Doe",
-  "email": "jane@example.com",
-  "dob": "1990-05-15",
-  "gender": "female",
-  "country": "DE"
-}
-```
-
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `full_name` | string | Yes | 1–200 chars. Split on the first space → `first_name` / `last_name`. Single-word names get `last_name = "-"` (stop-gap; will be made nullable when the schema is updated) |
-| `email` | string | Yes | Valid email address |
-| `dob` | string | Yes | `YYYY-MM-DD`, between 1900-01-01 and today |
-| `gender` | string | Yes | `"male"` or `"female"` |
-| `country` | string | Yes | One of: `DE`, `AT`, `CH`, `GB`, `US`, `IN`, `NZ` |
-
-### Defaults applied
-
-`karyakarta=Admin` and `terms_accepted=true` are set automatically — admin-created rows are visibly tagged with `karyakarta=Admin`.
-
-### Quota
-
-The country quota is checked before insert. **Caveat:** the quota count today only counts registrations with a paid payment row, so admin-created rows do not consume quota for *future* checks. Admins can therefore push country totals past the cap. Acceptable for the comp/sponsor/walk-in use case; revisit if admin volume grows.
-
-### Success Response — `200 OK`
-
-```json
-{
-  "reference": "HP-2026-00042",
-  "ticket_number": "HP-2026-00042-M1"
-}
-```
-
-### Error Responses
-
-- `401 ADMIN_UNAUTHORIZED` — missing/malformed `Authorization` header, or expired/invalid JWT
-- `403 ADMIN_FORBIDDEN` — valid JWT but user is not an admin
-- `409 QUOTA_EXCEEDED` — country quota is full
-- `422 VALIDATION_ERROR` — invalid `full_name`, `email`, `dob`, `gender`, or `country`
-- `429 RATE_LIMITED` — too many requests
-- `500 REGISTRATION_FAILED` — DB insert failed (registration is rolled back)
 
 ---
 

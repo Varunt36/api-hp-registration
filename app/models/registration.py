@@ -4,8 +4,8 @@ from pydantic import BaseModel, EmailStr, field_validator, model_validator
 from datetime import date
 from enum import Enum
 
-ALLOWED_COUNTRIES = {"DE", "AT", "CH", "GB", "US", "IN", "NZ"}
 MAX_MEMBERS_PER_REGISTRATION = 4
+_COUNTRY_CODE_REGEX = re.compile(r"^[A-Z]{2}$")
 
 _PHONE_REGEX = re.compile(r"^\+?[0-9\s\-()]{7,20}$")
 _UNSAFE_CHARS = re.compile(r"[<>&]")
@@ -82,8 +82,8 @@ class RegistrationInput(BaseModel):
     @classmethod
     def validate_country(cls, v):
         v = v.strip().upper()
-        if v not in ALLOWED_COUNTRIES:
-            raise ValueError(f"Country must be one of: {', '.join(sorted(ALLOWED_COUNTRIES))}")
+        if not _COUNTRY_CODE_REGEX.match(v):
+            raise ValueError("Country must be a 2-letter ISO code")
         return v
 
     @field_validator("karyakarta")

@@ -46,26 +46,13 @@ class RegistrationInsertError(AppError):
         super().__init__(f"Registration failed{detail}. Please try again.")
 
 
-class AdminUnauthorizedError(AppError):
-    code = "ADMIN_UNAUTHORIZED"
-    status_code = 401
-    default_message = "Authentication required."
-
-
-class AdminForbiddenError(AppError):
-    code = "ADMIN_FORBIDDEN"
-    status_code = 403
-    default_message = "Admin access required."
-
-
 class PaymentProviderUnreachable(PaymentError):
     """Transient: provider unreachable. User retries."""
     code = "PAYMENT_PROVIDER_UNREACHABLE"
 
-    def __init__(self, provider: str, detail: str = ""):
+    def __init__(self, provider: str = "stripe", detail: str = ""):
         self.detail = detail
-        name = "PayPal" if provider.lower() == "paypal" else "Stripe"
-        super().__init__(f"{name} is temporarily unavailable. Please try again in a moment.")
+        super().__init__("Stripe is temporarily unavailable. Please try again in a moment.")
 
 
 class PaymentProviderRejected(PaymentError):

@@ -23,7 +23,7 @@ from app.services.registration_service import (
 
 logger = logging.getLogger(__name__)
 
-Provider = Literal["stripe", "paypal"]
+Provider = Literal["stripe"]
 _INTENT_TTL = timedelta(hours=1)
 
 def create_intent(*, provider: Provider, payload: RegistrationInput, amount: float, currency: str = "EUR") -> str:
