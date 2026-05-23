@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     resend_api_key: str
     resend_from_email: str = "noreply@contact.onetouchpro.app"
     frontend_url: str = "http://localhost:5173"
+    cors_origins: str = "http://localhost:5173"
     debug: bool = False
 
     whatsapp_group_url: str = "https://chat.whatsapp.com/your-invite-code"

@@ -111,7 +111,7 @@ app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[u.strip() for u in settings.frontend_url.split(",")],
+    allow_origins=[u.strip() for u in settings.cors_origins.split(",") if u.strip()],
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
