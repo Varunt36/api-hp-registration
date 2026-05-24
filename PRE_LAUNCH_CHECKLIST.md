@@ -65,7 +65,6 @@ YOUTUBE_URL=https://youtube.com/your-channel
 1. Go to **[Stripe Dashboard → Settings → Payment methods](https://dashboard.stripe.com/settings/payment_methods)**
 2. Enable the methods you want:
    - [x] Card (Visa, Mastercard, Amex)
-   - [x] PayPal (if needed)
 
 ---
 
