@@ -1,15 +1,10 @@
-from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel
 from app.models.registration import RegistrationInput
 
 
-class PaymentMethod(str, Enum):
-    stripe = "stripe"
-
-
 class CreatePaymentRequest(RegistrationInput):
-    payment_method: PaymentMethod
+    payment_method: Literal["stripe", "paypal"] = "stripe"
 
 
 class CreatePaymentResponse(BaseModel):
@@ -20,3 +15,4 @@ class CreatePaymentResponse(BaseModel):
 class PaymentStatusResponse(BaseModel):
     status: str
     reference: Optional[str] = None
+    failure_reason: Optional[str] = None

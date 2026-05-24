@@ -4,17 +4,25 @@ from pydantic import BaseModel, EmailStr, field_validator, model_validator
 from datetime import date
 from enum import Enum
 
-ALLOWED_COUNTRIES = {"DE", "AT", "CH", "GB", "US", "IN", "NZ"}
 MAX_MEMBERS_PER_REGISTRATION = 4
+_COUNTRY_CODE_REGEX = re.compile(r"^[A-Z]{2}$")
 
 _PHONE_REGEX = re.compile(r"^\+?[0-9\s\-()]{7,20}$")
 _UNSAFE_CHARS = re.compile(r"[<>&]")
 
 
-def _validate_safe_text(value: str, field_name: str) -> str:
+def validate_safe_text(value: str, field_name: str) -> str:
     if _UNSAFE_CHARS.search(value):
         raise ValueError(f"{field_name} contains invalid characters")
     return value
+
+
+def validate_dob_value(v: date) -> date:
+    if v > date.today():
+        raise ValueError("Date of birth cannot be in the future")
+    if v.year < 1900:
+        raise ValueError("Date of birth is not valid")
+    return v
 
 
 class Gender(str, Enum):
@@ -45,16 +53,12 @@ class MemberInput(BaseModel):
         v = v.strip()
         if len(v) < 1 or len(v) > 100:
             raise ValueError("Name must be 1-100 characters")
-        return _validate_safe_text(v, "Name")
+        return validate_safe_text(v, "Name")
 
     @field_validator("dob")
     @classmethod
     def validate_dob(cls, v):
-        if v > date.today():
-            raise ValueError("Date of birth cannot be in the future")
-        if v.year < 1900:
-            raise ValueError("Date of birth is not valid")
-        return v
+        return validate_dob_value(v)
 
     @field_validator("phone")
     @classmethod
@@ -78,8 +82,8 @@ class RegistrationInput(BaseModel):
     @classmethod
     def validate_country(cls, v):
         v = v.strip().upper()
-        if v not in ALLOWED_COUNTRIES:
-            raise ValueError(f"Country must be one of: {', '.join(sorted(ALLOWED_COUNTRIES))}")
+        if not _COUNTRY_CODE_REGEX.match(v):
+            raise ValueError("Country must be a 2-letter ISO code")
         return v
 
     @field_validator("karyakarta")
@@ -88,7 +92,7 @@ class RegistrationInput(BaseModel):
         v = v.strip()
         if len(v) < 1 or len(v) > 200:
             raise ValueError("Karyakarta name must be 1-200 characters")
-        return _validate_safe_text(v, "Karyakarta name")
+        return validate_safe_text(v, "Karyakarta name")
 
     @field_validator("terms_accepted")
     @classmethod

@@ -63,7 +63,7 @@ POST → payments
 
 ---
 
-### Step 4 — Stripe/PayPal webhook updates payment
+### Step 4 — Stripe webhook updates payment
 
 ```json
 PATCH → payments (where registration_id = "a3f2c1d0-...")

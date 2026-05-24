@@ -35,18 +35,13 @@ DEBUG=false                                     # MUST be false in production
 STRIPE_SECRET_KEY=sk_live_xxxxxxxx            # dashboard.stripe.com/apikeys (LIVE mode)
 STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxx          # From Stripe webhook endpoint (Step 3)
 
-# ── Pricing ──
-PAYMENT_AMOUNT_PER_MEMBER=250.00
-
 # ── Email Images (host on Supabase Storage or CDN) ──
 EMAIL_BANNER_URL=https://your-cdn/banner.png
 EMAIL_LOGO_URL=https://your-cdn/logo.png
 
 # ── Social Links (sent in email after payment) ──
 WHATSAPP_GROUP_URL=https://chat.whatsapp.com/your-group
-WHATSAPP_QR_URL=https://your-cdn/whatsapp-qr.png
-TELEGRAM_GROUP_URL=https://t.me/your-channel
-TELEGRAM_QR_URL=https://your-cdn/telegram-qr.png
+TELEGRAM_GROUP_URL=https://t.me/+IT1zhtSm-HA3Y2Yy
 INSTAGRAM_URL=https://instagram.com/your-page
 YOUTUBE_URL=https://youtube.com/your-channel
 ```
@@ -70,8 +65,6 @@ YOUTUBE_URL=https://youtube.com/your-channel
 1. Go to **[Stripe Dashboard → Settings → Payment methods](https://dashboard.stripe.com/settings/payment_methods)**
 2. Enable the methods you want:
    - [x] Card (Visa, Mastercard, Amex)
-   - [x] PayPal (if needed)
-   - [ ] Others (Google Pay, Apple Pay, etc.)
 
 ---
 

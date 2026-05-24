@@ -10,20 +10,15 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
     debug: bool = False
 
-    email_banner_url: str = ""
-    email_logo_url: str = ""
-
-    whatsapp_group_url: str = ""
-    whatsapp_qr_url: str = ""
-    telegram_group_url: str = ""
-    telegram_qr_url: str = ""
-    instagram_url: str = ""
-    youtube_url: str = ""
+    whatsapp_group_url: str = "https://chat.whatsapp.com/your-invite-code"
+    telegram_group_url: str = "https://t.me/+IT1zhtSm-HA3Y2Yy"
+    instagram_url: str = "https://www.instagram.com/hariprabodhamgermany?igsh=NDFrcTBydXdlc3lt&utm_source=qr"
+    youtube_url: str = "https://www.youtube.com/@harisumiranDE"
 
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
 
-    payment_amount_per_member: float = 250.00
+    price_per_person_eur: float = 290.0
 
     class Config:
         env_file = ".env"

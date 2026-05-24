@@ -1,158 +1,481 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>YDS Germany 2026 - Registration Confirmed</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: #3a3a3a; font-family: 'DM Sans', Arial, Helvetica, sans-serif;">
-  <!-- Outer wrapper -->
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #3a3a3a;">
-    <tr>
-      <td align="center" style="padding: 0;">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>HariPrabodham Germany 2026 — Registration Confirmed</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap");
 
-        <!-- Main container (600px max) -->
-        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; width: 100%; background-color: #3a3a3a;">
+      /* Reset */
+      body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+      table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; border-collapse: collapse; }
+      img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
 
-          <!-- Hero Banner -->
-          <tr>
-            <td style="padding: 0;">
-              <img
-                src="{{BANNER_URL}}"
-                alt="YDS Germany 2026 - The Journey Has Begun"
-                width="600"
-                style="width: 100%; max-width: 600px; height: auto; display: block; border: 0;"
-              />
-            </td>
-          </tr>
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        font-family: "Source Sans 3", Helvetica, Arial, sans-serif;
+        background-color: #f4eef7;
+        color: #2d1b4e;
+      }
 
-          <!-- Logo -->
-          <tr>
-            <td align="center" style="padding: 30px 0 15px; background-color: #3a3a3a;">
-              <img
-                src="{{LOGO_URL}}"
-                alt="HariPrabodhaM"
-                width="160"
-                style="width: 160px; height: auto; display: block; border: 0;"
-              />
-            </td>
-          </tr>
+      .email-wrapper {
+        max-width: 600px;
+        width: 100%;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(75, 30, 120, 0.1);
+      }
 
-          <!-- Greeting -->
-          <tr>
-            <td align="center" style="padding: 5px 0 25px; background-color: #3a3a3a;">
-              <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #F37C3E;">
-                Jai Swaminarayan
-              </h1>
-            </td>
-          </tr>
+      /* ==========  HEADER  ========== */
+      .header {
+        background: linear-gradient(135deg, #4a2872 0%, #6b3fa0 100%);
+        background-color: #4a2872; /* Outlook fallback */
+        padding: 28px 32px 22px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -30px;
+        right: -30px;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(232, 178, 90, 0.14);
+      }
+      .header h1 {
+        position: relative;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 26px;
+        font-weight: 600;
+        color: #ffffff;
+        line-height: 1.2;
+        letter-spacing: 0.5px;
+        margin: 0;
+      }
+      .header .event-location {
+        position: relative;
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 8px;
+      }
+      .header .event-date {
+        position: relative;
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 16px;
+        font-weight: 600;
+        color: #f0b85e;
+        margin-top: 8px;
+        letter-spacing: 1.2px;
+      }
 
-          <!-- Confirmation Header -->
-          <tr>
-            <td align="center" style="padding: 0 30px 10px; background-color: #3a3a3a;">
-              <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #ffffff;">
-                Registration Confirmed!
-              </h2>
-            </td>
-          </tr>
+      /* ==========  GREETING  ========== */
+      .greeting {
+        background: #faf6fd;
+        border-bottom: 1px solid #ede0f5;
+        padding: 18px 32px 16px;
+        text-align: center;
+      }
+      .greeting .slogan {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-style: italic;
+        font-size: 20px;
+        font-weight: 600;
+        color: #6b3fa0;
+        letter-spacing: 0.5px;
+        line-height: 1.3;
+      }
+      .greeting .slogan-translate {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-style: italic;
+        font-size: 13px;
+        color: #9c8eb0;
+        margin-top: 4px;
+        letter-spacing: 0.3px;
+      }
 
-          <!-- Subtitle -->
-          <tr>
-            <td align="center" style="padding: 0 30px 25px; background-color: #3a3a3a;">
-              <p style="margin: 0; font-size: 15px; color: #cccccc; line-height: 1.5;">
-                Your registration for <strong style="color: #ffffff;">HariPrabodham Germany 2026</strong> has been confirmed.<br />
-                Please show the QR code(s) below at the event for check-in.
-              </p>
-            </td>
-          </tr>
+      /* ==========  BODY  ========== */
+      .body-content { padding: 32px; }
 
-          <!-- Reference Number -->
-          <tr>
-            <td align="center" style="padding: 0 30px 30px; background-color: #3a3a3a;">
-              <table cellpadding="0" cellspacing="0" border="0" style="background-color: #365288; border-radius: 8px;">
-                <tr>
-                  <td style="padding: 12px 24px;">
-                    <span style="font-size: 13px; color: #b0c4de;">Reference Number</span><br />
-                    <span style="font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: 1px;">{{REFERENCE}}</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+      .intro {
+        font-size: 14px;
+        line-height: 1.65;
+        color: #5a4a72;
+        text-align: center;
+        margin: 0 0 22px;
+      }
 
-          <!-- Divider -->
-          <tr>
-            <td style="padding: 0 30px;">
-              <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="border-bottom: 1px solid #555; font-size: 0; line-height: 0;">&nbsp;</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+      .confirmed { text-align: center; margin-bottom: 20px; }
+      .confirmed h2 {
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 20px;
+        color: #4a2872;
+        font-weight: 600;
+        margin: 0;
+      }
 
-          <!-- Members Section Header -->
-          <tr>
-            <td align="center" style="padding: 25px 30px 15px; background-color: #3a3a3a;">
-              <p style="margin: 0; font-size: 14px; font-weight: 600; color: #999999; text-transform: uppercase; letter-spacing: 2px;">
-                {{MEMBERS_HEADING}}
-              </p>
-            </td>
-          </tr>
+      /* ==========  ENTRY PASS  ========== */
+      .pass-card {
+        margin: 0 0 16px;
+        border: 2px solid #e6d4f5;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .pass-card-header {
+        background: linear-gradient(135deg, #4a2872, #6b3fa0);
+        background-color: #4a2872;
+        padding: 10px 20px;
+        text-align: center;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 11px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        color: #f0b85e;
+        font-weight: 600;
+      }
+      .pass-card-body {
+        padding: 24px 24px 20px;
+        text-align: center;
+        background: linear-gradient(180deg, #faf6fd, #ffffff);
+        background-color: #faf6fd;
+      }
+      .pass-name {
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 20px;
+        font-weight: 700;
+        color: #4a2872;
+        margin-bottom: 14px;
+      }
+      .pass-qr-img {
+        display: block;
+        margin: 0 auto 16px auto;
+        border-radius: 6px;
+      }
+      .pass-ref {
+        display: inline-block;
+        background: #f4eef7;
+        border-radius: 20px;
+        padding: 6px 16px;
+        margin-top: 4px;
+      }
+      .pass-ref .label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: #9c8eb0;
+        margin-right: 6px;
+      }
+      .pass-ref .value {
+        font-size: 13px;
+        font-weight: 700;
+        color: #4a2872;
+        letter-spacing: 0.5px;
+      }
 
-          <!-- Member QR Cards (injected dynamically) -->
-          {{MEMBERS_SECTION}}
+      .pass-instruction {
+        text-align: center;
+        font-size: 13px;
+        color: #6b5a82;
+        margin: 14px 8px 0;
+        line-height: 1.55;
+      }
 
-          <!-- Event Info -->
-          <tr>
-            <td style="padding: 10px 30px 0;">
-              <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="border-bottom: 1px solid #555; font-size: 0; line-height: 0;">&nbsp;</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding: 25px 30px 10px; background-color: #3a3a3a;">
-              <table cellpadding="0" cellspacing="0" border="0" style="background-color: #2d2d2d; border-radius: 8px; width: 100%;">
-                <tr>
-                  <td style="padding: 20px; text-align: center;">
-                    <p style="margin: 0 0 5px; font-size: 16px; font-weight: 600; color: #F37C3E;">
-                      August 16 &ndash; 18, 2026
+      /* ==========  ORNAMENT  ========== */
+      .ornament {
+        text-align: center;
+        margin: 32px 0 18px;
+        color: #f0b85e;
+        font-size: 12px;
+        letter-spacing: 8px;
+      }
+      .section-title {
+        text-align: center;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 18px;
+        color: #4a2872;
+        font-weight: 600;
+        margin-bottom: 14px;
+      }
+
+      /* ==========  TRAVEL ROW  ========== */
+      .travel-row {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 8px 0;
+        margin-bottom: 16px;
+      }
+      .travel-cell {
+        width: 25%;
+        text-align: center;
+        background: #faf6fd;
+        border: 1px solid #ede0f5;
+        border-radius: 10px;
+        padding: 14px 6px;
+        vertical-align: middle;
+      }
+      .travel-cell .icon {
+        line-height: 0;
+        margin-bottom: 6px;
+      }
+      .travel-cell .label {
+        font-family: "Source Sans 3", Helvetica, Arial, sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: #4a2872;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+
+      .cta-section { text-align: center; margin-top: 26px; font-size: 0; }
+      .cta-btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #4a2872, #6b3fa0);
+        background-color: #4a2872;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 11px 28px;
+        border-radius: 50px;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin: 4px 6px;
+      }
+      .cta-btn.secondary {
+        background: #f0b85e;
+        background-color: #f0b85e;
+        color: #4a2872;
+        font-weight: 700;
+      }
+
+      /* ==========  COMMUNITY  ========== */
+      .community { text-align: center; margin-top: 8px; }
+      .community-text {
+        font-size: 13px;
+        color: #6b5a82;
+        margin: 0 0 14px;
+        line-height: 1.5;
+      }
+      .community-buttons { font-size: 0; margin-bottom: 20px; }
+      .comm-btn {
+        display: inline-block;
+        background: #ffffff;
+        background-color: #ffffff;
+        color: #4a2872;
+        text-decoration: none;
+        padding: 9px 20px;
+        border-radius: 50px;
+        border: 1.5px solid #6b3fa0;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        margin: 4px;
+      }
+
+      .follow-label {
+        font-size: 12px;
+        color: #6b5a82;
+        margin: 0 0 10px;
+        letter-spacing: 0.3px;
+      }
+      .social-icons { font-size: 0; }
+      .social-icon {
+        display: inline-block;
+        margin: 0 10px;
+        vertical-align: middle;
+        text-decoration: none;
+      }
+      .social-icon img {
+        display: block;
+        border: 0;
+      }
+
+      .private-note {
+        font-size: 11px;
+        color: #9c8eb0;
+        font-style: italic;
+        margin-top: 14px;
+        line-height: 1.4;
+      }
+
+      /* ==========  FOOTER  ========== */
+      .footer {
+        background: #4a2872;
+        background-color: #4a2872;
+        padding: 18px 32px;
+        text-align: center;
+      }
+      .footer .contact {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.75);
+        margin-bottom: 6px;
+      }
+      .footer .contact a {
+        color: #f0b85e;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .footer .copyright {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      /* ==========  MOBILE  ========== */
+      @media screen and (max-width: 600px) {
+        .body-content, .header, .greeting, .footer {
+          padding-left: 20px !important;
+          padding-right: 20px !important;
+        }
+        .header h1 { font-size: 22px !important; }
+        .travel-cell { padding: 10px 4px !important; }
+        .travel-cell .label { font-size: 10px !important; }
+      }
+    </style>
+  </head>
+  <body style="margin:0; padding:0; background-color:#f4eef7;">
+    <!-- Outer table for guaranteed centering across all clients -->
+    <table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f4eef7;">
+      <tr>
+        <td align="center" style="padding: 32px 16px;">
+          <!-- Email content wrapper -->
+          <table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px; width:100%;" class="email-wrapper">
+            <tr>
+              <td>
+                <!-- Header -->
+                <div class="header">
+                  <h1>HariPrabodham &middot; Amrut Mahotsav</h1>
+                  <div class="event-location">Germany 2026</div>
+                  <div class="event-date">15 &middot; 16 &middot; 17 August &mdash; Berlin</div>
+                </div>
+
+                <!-- Slogan -->
+                <div class="greeting">
+                  <div class="slogan">Na me rahoo na meri arzoo rahe</div>
+                  <div class="slogan-translate">May neither I nor my desires remain.</div>
+                </div>
+
+                <!-- Body -->
+                <div class="body-content">
+                  <p class="intro">
+                    Jai Swaminarayan Das Na Das Banavsoiji. Thank you for registering for
+                    HariPrabodham Amrut Mahotsav Germany 2026. We are blessed to welcome
+                    you in Berlin.
+                  </p>
+
+                  <div class="confirmed">
+                    <h2>Registration Confirmed</h2>
+                  </div>
+
+                  <!-- Entry Pass cards (one per member, injected dynamically) -->
+                  {{MEMBERS_SECTION}}
+
+                  <p class="pass-instruction">
+                    Please show this QR code at Registration Desk to collect your Shibir Badge. Thank you.
+                  </p>
+
+                  <!-- Travel -->
+                  <div class="ornament">&#10086; &mdash; &#10086;</div>
+                  <div class="section-title">Plan Your Trip</div>
+
+                  <table class="travel-row" role="presentation">
+                    <tr>
+                      <td class="travel-cell">
+                        <div class="icon">
+                          <img src="cid:icon-stay" alt="Stay" width="24" height="24" style="display:inline-block; border:0;" />
+                        </div>
+                        <div class="label">Stay</div>
+                      </td>
+                      <td class="travel-cell">
+                        <div class="icon">
+                          <img src="cid:icon-travel" alt="Travel" width="24" height="24" style="display:inline-block; border:0;" />
+                        </div>
+                        <div class="label">Travel</div>
+                      </td>
+                      <td class="travel-cell">
+                        <div class="icon">
+                          <img src="cid:icon-explore" alt="Explore" width="24" height="24" style="display:inline-block; border:0;" />
+                        </div>
+                        <div class="label">Explore</div>
+                      </td>
+                      <td class="travel-cell">
+                        <div class="icon">
+                          <img src="cid:icon-info" alt="Info" width="24" height="24" style="display:inline-block; border:0;" />
+                        </div>
+                        <div class="label">Info</div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <div class="cta-section">
+                    <a href="{{HOTEL_URL}}" class="cta-btn secondary" style="color:#4a2872 !important; text-decoration:none;">
+                      <span style="color:#4a2872 !important;">Book Hotel</span>
+                    </a>
+                    <a href="{{TRAVEL_URL}}" class="cta-btn" style="color:#ffffff !important; text-decoration:none;">
+                      <span style="color:#ffffff !important;">Open Travel Guide &rarr;</span>
+                    </a>
+                  </div>
+
+                  <!-- Community -->
+                  <div class="ornament">&#10086; &mdash; &#10086;</div>
+                  <div class="section-title">Stay Connected</div>
+
+                  <div class="community">
+                    <p class="community-text">
+                      Join our community channels for event updates and announcements.
                     </p>
-                    <p style="margin: 0; font-size: 14px; color: #cccccc;">
-                      Berlin, Germany
+
+                    <div class="community-buttons">
+                      <a href="{{WHATSAPP_URL}}" class="comm-btn whatsapp">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4a2872" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle; margin-right:8px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/><path d="M8.5 9.5c0 3 2 5 5 5"/><path d="M8.5 9.5c0-.6.4-1 1-1h.5l.7 1.7-.7.6c.4.8 1 1.4 1.8 1.8l.6-.7 1.7.7v.5c0 .6-.4 1-1 1"/></svg>
+                        <span style="vertical-align:middle;">WhatsApp</span>
+                      </a>
+                      <a href="{{TELEGRAM_URL}}" class="comm-btn telegram">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4a2872" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle; margin-right:8px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        <span style="vertical-align:middle;">Telegram</span>
+                      </a>
+                    </div>
+
+                    <p class="follow-label">Follow us on Instagram and YouTube for latest information</p>
+
+                    <div class="social-icons">
+                      <a href="{{INSTAGRAM_URL}}" class="social-icon" aria-label="Instagram">
+                        <img src="{{INSTAGRAM_ICON_URL}}" alt="Instagram" width="40" height="40" />
+                      </a>
+                      <a href="{{YOUTUBE_URL}}" class="social-icon" aria-label="YouTube">
+                        <img src="{{YOUTUBE_ICON_URL}}" alt="YouTube" width="55" height="40" />
+                      </a>
+                    </div>
+
+                    <p class="private-note">
+                      These invite links are private. Please do not share publicly.
                     </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+                  </div>
+                </div>
 
-          <!-- Footer -->
-          <tr>
-            <td align="center" style="padding: 25px 30px 15px; background-color: #3a3a3a;">
-              <p style="margin: 0; font-size: 12px; color: #888888; line-height: 1.6;">
-                This is an automated email. Please do not reply.<br />
-                For questions, contact <a href="mailto:info@yds-germany.de" style="color: #F37C3E; text-decoration: none;">info@yds-germany.de</a>
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding: 0 30px 30px; background-color: #3a3a3a;">
-              <p style="margin: 0; font-size: 11px; color: #666666;">
-                &copy; 2026 Yogi Divine Society Germany. All rights reserved.
-              </p>
-            </td>
-          </tr>
-
-        </table>
-        <!-- /Main container -->
-
-      </td>
-    </tr>
-  </table>
-  <!-- /Outer wrapper -->
-</body>
+                <!-- Footer -->
+                <div class="footer">
+                  <div class="contact">
+                    Questions?
+                    <a href="mailto:info@yds-germany.de">info@yds-germany.de</a>
+                  </div>
+                  <div class="copyright">&copy; 2026 Yogi Divine Society Germany</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
 </html>

@@ -1,196 +1,174 @@
+"""Payment intent store + post-payment orchestration.
+
+The intent UUID is the only thing handed to the provider, so PII stays off the
+provider. The reference number is allocated inside complete_payment, after the
+webhook has confirmed payment.
+"""
+from __future__ import annotations
+
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from typing import Literal, Optional
 
-import stripe
-
-from app.core.config import settings
-from app.core.exceptions import PaymentError
+from app.core.exceptions import QuotaExceededError, RegistrationInsertError
 from app.core.supabase import supabase
-from app.models.registration import RegistrationInput, MemberInput
-from app.services.registration_service import check_country_quota, insert_registration_members, process_qr_and_emails
+from app.models.registration import RegistrationInput
+from app.services.registration_service import (
+    allocate_reference,
+    check_country_quota,
+    delete_registration,
+    insert_registration_members,
+    process_qr_and_emails,
+)
 
 logger = logging.getLogger(__name__)
 
+Provider = Literal["stripe", "paypal"]
+_INTENT_TTL = timedelta(hours=1)
 
-def create_stripe_session(data: RegistrationInput, amount: float, reference: str) -> str:
-    """Create Stripe Checkout Session. Registration data is stored in Stripe metadata."""
-    stripe.api_key = settings.stripe_secret_key
-    metadata = _build_metadata(data, amount)
-    metadata["reference"] = reference
-    member_label = f"{len(data.members)} member{'s' if len(data.members) > 1 else ''}"
+def create_intent(*, provider: Provider, payload: RegistrationInput, amount: float, currency: str = "EUR") -> str:
+    expires_at = (datetime.now(timezone.utc) + _INTENT_TTL).isoformat()
+    result = supabase.table("payment_intents").insert({
+        "provider": provider,
+        "payload": payload.model_dump(mode="json"),
+        "amount": amount,
+        "currency": currency,
+        "status": "pending",
+        "expires_at": expires_at,
+    }).execute()
+    if not result.data:
+        raise RuntimeError("Failed to create payment_intent")
+    intent_id = result.data[0]["id"]
+    logger.info(f"intent created: id={intent_id} provider={provider}")
+    return intent_id
 
+
+def get_pending_intent(intent_id: str) -> Optional[dict]:
+    result = (
+        supabase.table("payment_intents")
+        .select("id, provider, payload, amount, currency, status")
+        .eq("id", intent_id).eq("status", "pending").execute()
+    )
+    return result.data[0] if result.data else None
+
+
+def mark_intent_consumed(intent_id: str, reference: str) -> bool:
+    """Atomic pending -> consumed. Returns True iff this call won the race."""
+    result = (
+        supabase.table("payment_intents")
+        .update({"status": "consumed", "reference": reference})
+        .eq("id", intent_id).eq("status", "pending").execute()
+    )
+    won = bool(result.data)
+    logger.info(f"intent {'consumed' if won else 'race lost'}: id={intent_id}")
+    return won
+
+
+def revert_intent_to_pending(intent_id: str) -> None:
+    """Best-effort undo of a consumed claim so a webhook retry can re-process."""
     try:
-        session = stripe.checkout.Session.create(
-            line_items=[{
-                "price_data": {
-                    "currency": "eur",
-                    "product_data": {"name": f"HP 2026 Registration ({member_label})"},
-                    "unit_amount": int(amount * 100),
-                },
-                "quantity": 1,
-            }],
-            mode="payment",
-            success_url=f"{settings.frontend_url}/payment/success?ref={reference}",
-            cancel_url=f"{settings.frontend_url}/payment/cancel",
-            metadata=metadata,
-        )
-    except stripe.StripeError as e:
-        logger.exception(f"Stripe session creation failed: {e}")
-        raise PaymentError("Payment session could not be created. Please try again.")
-
-    logger.info(f"Stripe session created: {reference}, {data.country}, {member_label}, EUR {amount:.2f}")
-    return session.url
-
-
-def verify_stripe_event(payload: bytes, sig_header: str) -> dict:
-    """Verify Stripe webhook signature and return the parsed event."""
-    stripe.api_key = settings.stripe_secret_key
-    return stripe.Webhook.construct_event(payload, sig_header, settings.stripe_webhook_secret)
-
-
-def complete_payment(session: dict):
-    """Process successful payment: insert registration, payment record, and send emails.
-
-    Called as a background task from the webhook handler.
-    Each step has individual error handling with logging for manual recovery.
-    """
-    metadata = session.get("metadata", {})
-    transaction_id = session.get("payment_intent") or session["id"]
-    session_id = session.get("id", "unknown")
-    amount = float(metadata.get("amount", 0))
-    log_ctx = f"session={session_id}, txn={transaction_id}"
-
-    # Idempotency: skip if already processed
-    existing = supabase.table("payments").select("id").eq("transaction_id", transaction_id).execute()
-    if existing.data:
-        logger.info(f"[SKIP] Already processed: {log_ctx}")
-        return
-
-    # Reconstruct registration from metadata
-    try:
-        data = _reconstruct_registration(metadata)
+        supabase.table("payment_intents").update(
+            {"status": "pending", "reference": None}
+        ).eq("id", intent_id).execute()
     except Exception:
-        logger.exception(f"[FAIL] Metadata reconstruction: {log_ctx}")
+        logger.exception(f"Failed to revert intent {intent_id}")
+
+
+def lookup_intent_status(intent_id: str) -> Optional[dict]:
+    """Return {status, reference, failure_reason}. Pending intents past expiry are reported as 'expired'."""
+    result = (
+        supabase.table("payment_intents")
+        .select("status, reference, expires_at, failure_reason").eq("id", intent_id).execute()
+    )
+    if not result.data:
+        return None
+    row = result.data[0]
+    if row["status"] == "pending":
+        expires_at = datetime.fromisoformat(row["expires_at"].replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) > expires_at:
+            return {"status": "expired", "reference": None, "failure_reason": "Payment session expired before completion."}
+    return {
+        "status": row["status"],
+        "reference": row.get("reference"),
+        "failure_reason": row.get("failure_reason"),
+    }
+
+
+def mark_intent_failed(intent_id: str, reason: str) -> None:
+    """Record why a payment_intent ended in failure so the FE can show the user."""
+    try:
+        supabase.table("payment_intents").update(
+            {"status": "failed", "failure_reason": reason}
+        ).eq("id", intent_id).execute()
+    except Exception:
+        logger.exception(f"Failed to mark intent {intent_id} as failed")
+
+
+# --- Orchestration --------------------------------------------------------
+
+def complete_payment(intent_id: str, transaction_id: str, provider: str, provider_order_id: str | None = None) -> None:
+    """Finalize a registration after a successful payment webhook. Idempotent."""
+    ctx = f"provider={provider} txn={transaction_id} intent={intent_id}"
+
+    if supabase.table("payments").select("id").eq("transaction_id", transaction_id).execute().data:
+        logger.info(f"[SKIP] already processed: {ctx}")
         return
 
-    reference = metadata.get("reference")
-    log_ctx = f"{log_ctx}, country={data.country}, members={len(data.members)}, ref={reference}"
+    intent = get_pending_intent(intent_id)
+    if not intent:
+        logger.warning(f"[FAIL] intent not pending: {ctx}")
+        return
 
-    # Re-check quota (prevents race condition)
+    data = RegistrationInput(**intent["payload"])
+    ctx = f"{ctx} country={data.country} members={len(data.members)}"
+
     try:
         check_country_quota(data.country, len(data.members))
-    except Exception:
-        logger.warning(f"[FAIL] Quota exceeded at payment time: {log_ctx} — MANUAL REFUND NEEDED")
+    except QuotaExceededError as e:
+        logger.warning(f"[FAIL] quota exceeded at capture time: {ctx} - MANUAL REFUND")
+        mark_intent_failed(intent_id, e.message)
         return
 
-    # Look up the pre-allocated registration by reference
-    reg_lookup = supabase.table("registrations").select("id").eq("reference", reference).execute()
-    if not reg_lookup.data:
-        logger.error(f"[FAIL] Pre-allocated registration not found: {log_ctx} — MANUAL RECOVERY NEEDED")
-        return
-    registration_id = reg_lookup.data[0]["id"]
+    allocation = allocate_reference(data)
+    registration_id, reference = allocation["registration_id"], allocation["reference"]
+    ctx = f"{ctx} ref={reference}"
 
-    # Insert members for the pre-allocated registration
+    if not mark_intent_consumed(intent_id, reference):
+        logger.info(f"[SKIP] intent consumed concurrently, rolling back: {ctx}")
+        delete_registration(registration_id)
+        return
+
     try:
         result = insert_registration_members(registration_id, reference, data)
-    except Exception:
-        logger.exception(f"[FAIL] Member insert: {log_ctx} — MANUAL RECOVERY NEEDED")
+    except RegistrationInsertError:
+        logger.exception(f"[FAIL] member insert, reverting intent: {ctx}")
+        revert_intent_to_pending(intent_id)
+        mark_intent_failed(intent_id, "We could not save your registration after payment. Our team has been notified — please contact support with your payment reference.")
         return
 
-    # Insert payment record
+    amount = float(intent["amount"])
     try:
         supabase.table("payments").insert({
             "registration_id": registration_id,
             "status": "paid",
             "amount": amount,
-            "currency": "EUR",
-            "payment_method": "stripe",
+            "currency": intent.get("currency", "EUR"),
+            "payment_method": provider,
             "transaction_id": transaction_id,
+            "provider_order_id": provider_order_id,
             "paid_at": datetime.now(timezone.utc).isoformat(),
         }).execute()
     except Exception:
-        logger.exception(f"[FAIL] Payment record insert: {log_ctx}")
+        logger.exception(f"[FAIL] payment row insert, rolling back: {ctx}")
+        delete_registration(registration_id)
+        mark_intent_failed(intent_id, "Your payment succeeded but we could not save the confirmation. Our team has been notified — please contact support.")
         return
 
-    logger.info(f"[OK] Payment completed: {log_ctx}, EUR {amount:.2f}")
+    logger.info(f"[OK] payment completed: {ctx} EUR{amount:.2f}")
 
-    # Generate QR codes + send emails
-    primary_email = data.members[0].email
     try:
-        process_qr_and_emails(registration_id, result["members_data"], primary_email, reference)
-        supabase.table("payments").update({"emails_sent": True}).eq("registration_id", registration_id).execute()
-        logger.info(f"[OK] Emails sent: {log_ctx}")
+        sent = process_qr_and_emails(registration_id, result["members_data"], data.members[0].email, reference)
+        if sent > 0:
+            supabase.table("payments").update({"emails_sent": True}).eq("registration_id", registration_id).execute()
     except Exception:
-        logger.exception(f"[FAIL] Emails: {log_ctx} — payment saved, emails need manual retry")
-        try:
-            supabase.table("payments").update({"emails_sent": False}).eq("registration_id", registration_id).execute()
-        except Exception:
-            logger.exception(f"[FAIL] Could not update emails_sent flag: {log_ctx}")
-
-
-def get_payment_status(session_id: str) -> dict:
-    """Look up payment reference by Stripe session ID."""
-    stripe.api_key = settings.stripe_secret_key
-
-    try:
-        session = stripe.checkout.Session.retrieve(session_id)
-    except stripe.StripeError:
-        logger.warning(f"Stripe session not found: {session_id}")
-        return {"status": "not_found"}
-
-    if session.payment_status != "paid":
-        return {"status": "pending"}
-
-    transaction_id = session.payment_intent or session.id
-
-    payment = (
-        supabase.table("payments")
-        .select("registration_id, registrations(reference)")
-        .eq("transaction_id", transaction_id)
-        .execute()
-    )
-
-    if not payment.data:
-        return {"status": "processing"}
-
-    reference = payment.data[0].get("registrations", {}).get("reference")
-    return {"status": "paid", "reference": reference}
-
-
-def _build_metadata(data: RegistrationInput, amount: float) -> dict:
-    """Encode registration data into Stripe metadata dict."""
-    metadata = {
-        "country": data.country,
-        "karyakarta": data.karyakarta,
-        "member_count": str(len(data.members)),
-        "amount": str(amount),
-    }
-    for i, member in enumerate(data.members, 1):
-        metadata[f"m{i}_first"] = member.first_name
-        metadata[f"m{i}_last"] = member.last_name
-        metadata[f"m{i}_gender"] = member.gender.value
-        metadata[f"m{i}_dob"] = str(member.dob)
-        metadata[f"m{i}_email"] = member.email or ""
-        metadata[f"m{i}_phone"] = member.phone or ""
-    return metadata
-
-
-def _reconstruct_registration(metadata: dict) -> RegistrationInput:
-    """Decode Stripe metadata back into a RegistrationInput."""
-    member_count = int(metadata["member_count"])
-    members = []
-    for i in range(1, member_count + 1):
-        members.append(MemberInput(
-            first_name=metadata[f"m{i}_first"],
-            last_name=metadata[f"m{i}_last"],
-            gender=metadata[f"m{i}_gender"],
-            dob=metadata[f"m{i}_dob"],
-            email=metadata.get(f"m{i}_email") or None,
-            phone=metadata.get(f"m{i}_phone") or None,
-        ))
-    return RegistrationInput(
-        country=metadata["country"],
-        karyakarta=metadata["karyakarta"],
-        terms_accepted=True,
-        members=members,
-    )
+        logger.exception(f"[FAIL] emails: {ctx} - payment saved, retry manually")
