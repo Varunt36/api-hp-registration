@@ -30,15 +30,15 @@ def _load_bytes(filename: str) -> bytes:
 
 _INSTAGRAM_ICON_BYTES = _load_bytes("instagram-icon.png")
 _YOUTUBE_ICON_BYTES = _load_bytes("youtube-icon.png")
+_WHATSAPP_ICON_BYTES = _load_bytes("whatsapp.png")
+_TELEGRAM_ICON_BYTES = _load_bytes("telegram.png")
 _TRAVEL_ICONS = {
-    "icon-stay":    _load_bytes("lodging.png"),
     "icon-travel":  _load_bytes("smartphone.png"),
     "icon-explore": _load_bytes("compass.png"),
-    "icon-info":    _load_bytes("information-button.png"),
 }
 
 _HOTEL_URL = "https://hpam.hariprabodham.de/hotel-offer"
-_EXPLORE_URL = "https://hpam.hariprabodham.de/explore"
+_HOTEL_VIDEO_URL = "https://xlbxeesekktpyioaeade.supabase.co/storage/v1/object/public/registration%20guide%20video/hotel-booking-guide.mp4"
 
 
 def _safe(text: str) -> str:
@@ -53,7 +53,6 @@ def _mask_email(email: str) -> str:
 
 def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str = "") -> None:
     to = to_email.replace("\r", "").replace("\n", "").strip()
-    safe_ref = _safe(reference)
     cards, attachments = [], []
 
     for item in members_qr:
@@ -80,7 +79,7 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
         cards.append(
             _MEMBER_CARD_TEMPLATE
             .replace("{{MEMBER_NAME}}", name)
-            .replace("{{REFERENCE}}", safe_ref)
+            .replace("{{MEMBER_NO}}", html.escape(ticket))
             .replace("{{QR_IMAGE}}", qr_html)
         )
 
@@ -88,13 +87,15 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
         _REGISTRATION_TEMPLATE
         .replace("{{MEMBERS_SECTION}}", "\n".join(cards))
         .replace("{{HOTEL_URL}}", html.escape(_HOTEL_URL))
-        .replace("{{TRAVEL_URL}}", html.escape(_EXPLORE_URL))
+        .replace("{{HOTEL_VIDEO_URL}}", html.escape(_HOTEL_VIDEO_URL))
         .replace("{{WHATSAPP_URL}}", html.escape(settings.whatsapp_group_url))
         .replace("{{TELEGRAM_URL}}", html.escape(settings.telegram_group_url))
         .replace("{{INSTAGRAM_URL}}", html.escape(settings.instagram_url))
         .replace("{{YOUTUBE_URL}}", html.escape(settings.youtube_url))
         .replace("{{INSTAGRAM_ICON_URL}}", "cid:instagram-icon")
         .replace("{{YOUTUBE_ICON_URL}}", "cid:youtube-icon")
+        .replace("{{WHATSAPP_ICON_URL}}", "cid:whatsapp-icon")
+        .replace("{{TELEGRAM_ICON_URL}}", "cid:telegram-icon")
     )
 
     attachments.extend([
@@ -107,6 +108,16 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
             "filename": "youtube-icon.png",
             "content": base64.b64encode(_YOUTUBE_ICON_BYTES).decode("utf-8"),
             "content_id": "youtube-icon",
+        },
+        {
+            "filename": "whatsapp.png",
+            "content": base64.b64encode(_WHATSAPP_ICON_BYTES).decode("utf-8"),
+            "content_id": "whatsapp-icon",
+        },
+        {
+            "filename": "telegram.png",
+            "content": base64.b64encode(_TELEGRAM_ICON_BYTES).decode("utf-8"),
+            "content_id": "telegram-icon",
         },
     ])
     for cid, data in _TRAVEL_ICONS.items():
