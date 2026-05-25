@@ -211,31 +211,43 @@
 
       /* ==========  TRAVEL ROW  ========== */
       .travel-row {
-        width: 60%;
+        width: 70%;
         border-collapse: separate;
-        border-spacing: 10px 0;
+        border-spacing: 12px 0;
         margin: 0 auto 16px auto;
       }
       .travel-cell {
         width: 50%;
         text-align: center;
-        background: #faf6fd;
-        border: 1px solid #ede0f5;
-        border-radius: 10px;
-        padding: 12px 8px;
+        background: #ffffff;
+        border: 2px solid #c9b4e0;
+        border-radius: 12px;
+        padding: 0;
         vertical-align: middle;
+        box-shadow: 0 2px 6px rgba(74, 40, 114, 0.08);
+      }
+      .travel-link {
+        display: block;
+        padding: 14px 8px;
+        text-decoration: none;
+        color: inherit;
       }
       .travel-cell .icon {
         line-height: 0;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
       }
       .travel-cell .label {
         font-family: "Source Sans 3", Helvetica, Arial, sans-serif;
-        font-size: 11px;
-        font-weight: 600;
+        font-size: 12px;
+        font-weight: 700;
         color: #4a2872;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.8px;
         text-transform: uppercase;
+      }
+      .travel-cell .arrow {
+        color: #6b3fa0;
+        font-weight: 700;
+        margin-left: 4px;
       }
 
       .cta-section { text-align: center; margin-top: 26px; font-size: 0; }
@@ -384,27 +396,6 @@
                     Please show this QR code at Registration Desk to collect your Shibir Badge. Thank you.
                   </p>
 
-                  <!-- Travel -->
-                  <div class="ornament">&#10086; &mdash; &#10086;</div>
-                  <div class="section-title">Plan Your Trip</div>
-
-                  <table class="travel-row" role="presentation" align="center">
-                    <tr>
-                      <td class="travel-cell">
-                        <div class="icon">
-                          <img src="cid:icon-travel" alt="Travel" width="24" height="24" style="display:inline-block; border:0;" />
-                        </div>
-                        <div class="label">Travel</div>
-                      </td>
-                      <td class="travel-cell">
-                        <div class="icon">
-                          <img src="cid:icon-explore" alt="Explore" width="24" height="24" style="display:inline-block; border:0;" />
-                        </div>
-                        <div class="label">Explore</div>
-                      </td>
-                    </tr>
-                  </table>
-
                   <div class="cta-section">
                     <a href="{{HOTEL_URL}}" class="cta-btn secondary" style="color:#4a2872 !important; text-decoration:none;">
                       <span style="color:#4a2872 !important;">Book Hotel</span>
@@ -431,6 +422,31 @@
                       </table>
                     </a>
                   </div>
+
+                  <!-- Travel -->
+                  <div class="ornament">&#10086; &mdash; &#10086;</div>
+                  <div class="section-title">Plan Your Trip</div>
+
+                  <table class="travel-row" role="presentation" align="center">
+                    <tr>
+                      <td class="travel-cell">
+                        <a href="{{TRAVEL_URL}}" target="_blank" rel="noopener" class="travel-link">
+                          <div class="icon">
+                            <img src="cid:icon-travel" alt="Travel" width="28" height="28" style="display:inline-block; border:0;" />
+                          </div>
+                          <div class="label">Travel <span class="arrow">&rarr;</span></div>
+                        </a>
+                      </td>
+                      <td class="travel-cell">
+                        <a href="{{EXPLORE_URL}}" target="_blank" rel="noopener" class="travel-link">
+                          <div class="icon">
+                            <img src="cid:icon-explore" alt="Explore" width="28" height="28" style="display:inline-block; border:0;" />
+                          </div>
+                          <div class="label">Explore <span class="arrow">&rarr;</span></div>
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
 
                   <!-- Community -->
                   <div class="ornament">&#10086; &mdash; &#10086;</div>
@@ -479,7 +495,7 @@
                           Reach out to our event coordinator for any assistance.
                         </p>
 
-                        <p style="font-family: 'Playfair Display', Georgia, serif; font-size: 18px; font-weight: 700; color: #4a2872; margin: 0 0 14px;">
+                        <p style="font-family: 'Playfair Display', Georgia, serif; font-size: 14px; font-weight: 500; color: #4a2872; margin: 0 0 14px;">
                           Varun Thakar
                         </p>
 
@@ -489,7 +505,7 @@
                               <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #9c8eb0; font-weight: 600;">Email</span>
                             </td>
                             <td style="padding: 4px 0; text-align: left; vertical-align: middle;">
-                              <a href="mailto:info@yds-germany.de" style="color: #6b3fa0; text-decoration: none; font-size: 13px; font-weight: 600;">info@yds-germany.de</a>
+                              <a href="mailto:hpam@yds-germany.de" style="color: #6b3fa0; text-decoration: none; font-size: 13px; font-weight: 600;">hpam@yds-germany.de</a>
                             </td>
                           </tr>
                           <tr>
@@ -508,7 +524,7 @@
 
                 <!-- Footer -->
                 <div class="footer">
-                  <div class="copyright">&copy; 2026 Yogi Divine Society Germany</div>
+                  <div class="copyright">&copy; 2026 Yogi Divine Society e.V</div>
                 </div>
               </td>
             </tr>

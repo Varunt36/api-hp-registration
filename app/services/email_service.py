@@ -38,6 +38,8 @@ _TRAVEL_ICONS = {
 }
 
 _HOTEL_URL = "https://hpam.hariprabodham.de/hotel-offer"
+_TRAVEL_URL = "https://hpam.hariprabodham.de/venue"
+_EXPLORE_URL = "https://hpam.hariprabodham.de/explore"
 _HOTEL_VIDEO_URL = "https://xlbxeesekktpyioaeade.supabase.co/storage/v1/object/public/registration%20guide%20video/hotel-booking-guide.mp4"
 
 
@@ -88,6 +90,8 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
         .replace("{{MEMBERS_SECTION}}", "\n".join(cards))
         .replace("{{HOTEL_URL}}", html.escape(_HOTEL_URL))
         .replace("{{HOTEL_VIDEO_URL}}", html.escape(_HOTEL_VIDEO_URL))
+        .replace("{{TRAVEL_URL}}", html.escape(_TRAVEL_URL))
+        .replace("{{EXPLORE_URL}}", html.escape(_EXPLORE_URL))
         .replace("{{WHATSAPP_URL}}", html.escape(settings.whatsapp_group_url))
         .replace("{{TELEGRAM_URL}}", html.escape(settings.telegram_group_url))
         .replace("{{INSTAGRAM_URL}}", html.escape(settings.instagram_url))
