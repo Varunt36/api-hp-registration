@@ -40,6 +40,7 @@ _TRAVEL_ICONS = {
 _HOTEL_URL = "https://hpam.hariprabodham.de/hotel-offer"
 _TRAVEL_URL = "https://hpam.hariprabodham.de/venue"
 _EXPLORE_URL = "https://hpam.hariprabodham.de/explore"
+_BLUE_MIRAGE_FONT_URL = "https://klfmhhsamhraxohdynyz.supabase.co/storage/v1/object/sign/Fonts/blue_mirage-webfont.woff2?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8xNDA3ZDEwNy1mNzI3LTQ0ZjktYTU5OC02ODg5NmQxYTNiNDUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJGb250cy9ibHVlX21pcmFnZS13ZWJmb250LndvZmYyIiwiaWF0IjoxNzc5OTAxMDA1LCJleHAiOjE4NDI5NzMwMDV9.3NvzbJpA3zSZqRxUud433MZTKrE-jNW3lzrOiTiGdfg"
 _HOTEL_VIDEO_URL = "https://xlbxeesekktpyioaeade.supabase.co/storage/v1/object/public/registration%20guide%20video/hotel-booking-guide.mp4"
 
 
@@ -92,6 +93,7 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
         .replace("{{HOTEL_VIDEO_URL}}", html.escape(_HOTEL_VIDEO_URL))
         .replace("{{TRAVEL_URL}}", html.escape(_TRAVEL_URL))
         .replace("{{EXPLORE_URL}}", html.escape(_EXPLORE_URL))
+        .replace("{{BLUE_MIRAGE_FONT_URL}}", html.escape(_BLUE_MIRAGE_FONT_URL))
         .replace("{{WHATSAPP_URL}}", html.escape(settings.whatsapp_group_url))
         .replace("{{TELEGRAM_URL}}", html.escape(settings.telegram_group_url))
         .replace("{{INSTAGRAM_URL}}", html.escape(settings.instagram_url))
