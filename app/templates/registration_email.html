@@ -8,10 +8,36 @@
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap");
 
+      /* Custom font — only renders in Apple Mail / iOS Mail; others use fallback.
+         font-weight range (100 900) makes any requested weight use blue_mirage instead of falling back. */
+      @font-face {
+        font-family: "blue_mirage";
+        src: url("{{BLUE_MIRAGE_FONT_URL}}") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+      }
+
       /* Reset */
-      body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-      table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; border-collapse: collapse; }
-      img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+      body,
+      table,
+      td,
+      p,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+        border-collapse: collapse;
+      }
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+        outline: none;
+        text-decoration: none;
+      }
 
       body {
         margin: 0 !important;
@@ -53,7 +79,7 @@
       }
       .header h1 {
         position: relative;
-        font-family: "Playfair Display", Georgia, serif;
+        font-family: "blue_mirage", "Playfair Display", Georgia, serif;
         font-size: 26px;
         font-weight: 600;
         color: #ffffff;
@@ -63,7 +89,7 @@
       }
       .header .event-location {
         position: relative;
-        font-family: "Cormorant Garamond", Georgia, serif;
+        font-family: "blue_mirage", "Cormorant Garamond", Georgia, serif;
         font-size: 14px;
         font-weight: 500;
         letter-spacing: 2px;
@@ -73,10 +99,10 @@
       }
       .header .event-date {
         position: relative;
-        font-family: "Cormorant Garamond", Georgia, serif;
+        font-family: "blue_mirage", "Cormorant Garamond", Georgia, serif;
         font-size: 16px;
         font-weight: 600;
-        color: #f0b85e;
+        color: #ffc76f;
         margin-top: 8px;
         letter-spacing: 1.2px;
       }
@@ -89,7 +115,7 @@
         text-align: center;
       }
       .greeting .slogan {
-        font-family: "Cormorant Garamond", Georgia, serif;
+        font-family: "blue_mirage", "Cormorant Garamond", Georgia, serif;
         font-style: italic;
         font-size: 20px;
         font-weight: 600;
@@ -98,7 +124,7 @@
         line-height: 1.3;
       }
       .greeting .slogan-translate {
-        font-family: "Cormorant Garamond", Georgia, serif;
+        font-family: "blue_mirage", "Cormorant Garamond", Georgia, serif;
         font-style: italic;
         font-size: 13px;
         color: #9c8eb0;
@@ -107,7 +133,9 @@
       }
 
       /* ==========  BODY  ========== */
-      .body-content { padding: 32px; }
+      .body-content {
+        padding: 32px;
+      }
 
       .intro {
         font-size: 14px;
@@ -117,12 +145,15 @@
         margin: 0 0 22px;
       }
 
-      .confirmed { text-align: center; margin-bottom: 20px; }
+      .confirmed {
+        text-align: center;
+        margin-bottom: 20px;
+      }
       .confirmed h2 {
-        font-family: "Playfair Display", Georgia, serif;
+        font-family: "blue_mirage", "Playfair Display", Georgia, serif;
         font-size: 20px;
         color: #4a2872;
-        font-weight: 600;
+        font-weight: 700;
         margin: 0;
       }
 
@@ -138,11 +169,11 @@
         background-color: #4a2872;
         padding: 10px 20px;
         text-align: center;
-        font-family: "Playfair Display", Georgia, serif;
+        font-family: "blue_mirage", "Playfair Display", Georgia, serif;
         font-size: 11px;
         letter-spacing: 3px;
         text-transform: uppercase;
-        color: #f0b85e;
+        color: #ffc76f;
         font-weight: 600;
       }
       .pass-card-body {
@@ -152,7 +183,7 @@
         background-color: #faf6fd;
       }
       .pass-name {
-        font-family: "Playfair Display", Georgia, serif;
+        font-family: "blue_mirage", "Playfair Display", Georgia, serif;
         font-size: 20px;
         font-weight: 700;
         color: #4a2872;
@@ -192,13 +223,19 @@
         line-height: 1.55;
       }
 
-      /* ==========  ORNAMENT  ========== */
+      /* ==========  ORNAMENT (double-tapered gold separator, website-style)  ========== */
       .ornament {
-        text-align: center;
-        margin: 32px 0 18px;
-        color: #f0b85e;
-        font-size: 12px;
-        letter-spacing: 8px;
+        width: 40%;
+        margin: 36px auto 22px;
+        border-collapse: collapse;
+      }
+      .ornament .diamond {
+        color: #c89a52;
+        font-size: 14px;
+        line-height: 1;
+        padding: 0 12px;
+        white-space: nowrap;
+        vertical-align: middle;
       }
       .section-title {
         text-align: center;
@@ -209,36 +246,40 @@
         margin-bottom: 14px;
       }
 
-      /* ==========  TRAVEL ROW  ========== */
+      /* ==========  TRAVEL ROW (logo + label only, no button)  ========== */
       .travel-row {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 8px 0;
-        margin-bottom: 16px;
+        width: 60%;
+        border-collapse: collapse;
+        margin: 0 auto 16px auto;
       }
       .travel-cell {
-        width: 25%;
+        width: 50%;
         text-align: center;
-        background: #faf6fd;
-        border: 1px solid #ede0f5;
-        border-radius: 10px;
-        padding: 14px 6px;
-        vertical-align: middle;
+        padding: 8px 12px;
+        vertical-align: top;
+      }
+      .travel-link {
+        display: block;
+        text-decoration: none;
+        color: inherit;
       }
       .travel-cell .icon {
         line-height: 0;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
       }
       .travel-cell .label {
-        font-family: "Source Sans 3", Helvetica, Arial, sans-serif;
-        font-size: 11px;
+        font-family: "blue_mirage", "Playfair Display", Georgia, serif;
+        font-size: 15px;
         font-weight: 600;
         color: #4a2872;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
+        letter-spacing: 0.3px;
       }
 
-      .cta-section { text-align: center; margin-top: 26px; font-size: 0; }
+      .cta-section {
+        text-align: center;
+        margin-top: 26px;
+        font-size: 0;
+      }
       .cta-btn {
         display: inline-block;
         background: linear-gradient(135deg, #4a2872, #6b3fa0);
@@ -260,23 +301,29 @@
       }
 
       /* ==========  COMMUNITY  ========== */
-      .community { text-align: center; margin-top: 8px; }
+      .community {
+        text-align: center;
+        margin-top: 8px;
+      }
       .community-text {
         font-size: 13px;
         color: #6b5a82;
         margin: 0 0 14px;
         line-height: 1.5;
       }
-      .community-buttons { font-size: 0; margin-bottom: 20px; }
+      .community-buttons {
+        font-size: 0;
+        margin-bottom: 20px;
+      }
       .comm-btn {
         display: inline-block;
         background: #ffffff;
         background-color: #ffffff;
-        color: #4a2872;
+        color: #4e1369;
         text-decoration: none;
         padding: 9px 20px;
         border-radius: 50px;
-        border: 1.5px solid #6b3fa0;
+        border: 1.5px solid #4e1369;
         font-size: 12px;
         font-weight: 600;
         letter-spacing: 0.3px;
@@ -289,7 +336,9 @@
         margin: 0 0 10px;
         letter-spacing: 0.3px;
       }
-      .social-icons { font-size: 0; }
+      .social-icons {
+        font-size: 0;
+      }
       .social-icon {
         display: inline-block;
         margin: 0 10px;
@@ -333,44 +382,74 @@
 
       /* ==========  MOBILE  ========== */
       @media screen and (max-width: 600px) {
-        .body-content, .header, .greeting, .footer {
+        .body-content,
+        .header,
+        .greeting,
+        .footer {
           padding-left: 20px !important;
           padding-right: 20px !important;
         }
-        .header h1 { font-size: 22px !important; }
-        .travel-cell { padding: 10px 4px !important; }
-        .travel-cell .label { font-size: 10px !important; }
+        .header h1 {
+          font-size: 22px !important;
+        }
+        .travel-cell {
+          padding: 10px 4px !important;
+        }
+        .travel-cell .label {
+          font-size: 10px !important;
+        }
       }
     </style>
   </head>
-  <body style="margin:0; padding:0; background-color:#f4eef7;">
+  <body style="margin: 0; padding: 0; background-color: #f4eef7">
     <!-- Outer table for guaranteed centering across all clients -->
-    <table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f4eef7;">
+    <table
+      role="presentation"
+      align="center"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      width="100%"
+      style="background-color: #f4eef7"
+    >
       <tr>
-        <td align="center" style="padding: 32px 16px;">
+        <td align="center" style="padding: 32px 16px">
           <!-- Email content wrapper -->
-          <table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px; width:100%;" class="email-wrapper">
+          <table
+            role="presentation"
+            align="center"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            width="600"
+            style="max-width: 600px; width: 100%"
+            class="email-wrapper"
+          >
             <tr>
               <td>
                 <!-- Header -->
                 <div class="header">
                   <h1>HariPrabodham &middot; Amrut Mahotsav</h1>
                   <div class="event-location">Germany 2026</div>
-                  <div class="event-date">15 &middot; 16 &middot; 17 August &mdash; Berlin</div>
+                  <div class="event-date">
+                    15 &middot; 16 &middot; 17 August &mdash; Berlin
+                  </div>
                 </div>
 
                 <!-- Slogan -->
                 <div class="greeting">
-                  <div class="slogan">Na me rahoo na meri arzoo rahe</div>
-                  <div class="slogan-translate">May neither I nor my desires remain.</div>
+                  <div class="slogan">Na Mein Rahoon Na Meri Arzoo Rahe</div>
+                  <div class="slogan-translate">
+                    May neither I nor my desires remain.
+                  </div>
                 </div>
 
                 <!-- Body -->
                 <div class="body-content">
                   <p class="intro">
-                    Jai Swaminarayan Das Na Das Banavsoiji. Thank you for registering for
-                    HariPrabodham Amrut Mahotsav Germany 2026. We are blessed to welcome
-                    you in Berlin.
+                    Jai Swaminarayan Das Na Das Banavsoiji. Thank you for
+                    registering for HariPrabodham Amrut Mahotsav Germany 2026.
+                    We are blessed to welcome you in Berlin.
                   </p>
 
                   <div class="confirmed">
@@ -381,95 +460,520 @@
                   {{MEMBERS_SECTION}}
 
                   <p class="pass-instruction">
-                    Please show this QR code at Registration Desk to collect your Shibir Badge. Thank you.
+                    Please show this QR code at Registration Desk to collect
+                    your Shibir Badge. Thank you.
                   </p>
 
-                  <!-- Travel -->
-                  <div class="ornament">&#10086; &mdash; &#10086;</div>
-                  <div class="section-title">Plan Your Trip</div>
+                  <div class="cta-section">
+                    <a
+                      href="{{HOTEL_URL}}"
+                      class="cta-btn secondary"
+                      style="color: #4a2872 !important; text-decoration: none"
+                    >
+                      <span style="color: #4a2872 !important">Book Hotel</span>
+                    </a>
+                    <p
+                      style="
+                        text-align: center;
+                        color: firebrick;
+                        font-size: 13px;
+                        font-weight: 600;
+                        margin: 12px 0 0;
+                      "
+                    >
+                      Kindly book your hotel by 30 June 2026 to avail the
+                      discounted rate.
+                    </p>
+                  </div>
 
-                  <table class="travel-row" role="presentation">
+                  <!-- Booking guide video -->
+                  <div
+                    style="
+                      text-align: center;
+                      margin: 16px auto 0;
+                      max-width: 360px;
+                    "
+                  >
+                    <p
+                      style="font-size: 12px; color: #6b5a82; margin: 0 0 10px"
+                    >
+                      Watch the booking guide
+                    </p>
+                    <a
+                      href="{{HOTEL_VIDEO_URL}}"
+                      target="_blank"
+                      rel="noopener"
+                      style="display: block; text-decoration: none"
+                    >
+                      <table
+                        role="presentation"
+                        cellpadding="0"
+                        cellspacing="0"
+                        style="width: 100%; border-collapse: separate"
+                      >
+                        <tr>
+                          <td
+                            style="
+                              background: linear-gradient(
+                                135deg,
+                                #4a2872,
+                                #6b3fa0
+                              );
+                              background-color: #4a2872;
+                              border-radius: 12px;
+                              text-align: center;
+                              padding: 36px 20px;
+                            "
+                          >
+                            <div
+                              style="
+                                display: inline-block;
+                                width: 54px;
+                                height: 54px;
+                                border-radius: 50%;
+                                background: #ffffff;
+                                color: #4a2872;
+                                line-height: 54px;
+                                font-size: 22px;
+                                text-align: center;
+                                font-weight: bold;
+                              "
+                            >
+                              &#9654;
+                            </div>
+                            <div
+                              style="
+                                color: #ffffff;
+                                font-size: 14px;
+                                font-weight: 600;
+                                letter-spacing: 0.5px;
+                                margin-top: 14px;
+                              "
+                            >
+                              Hotel Booking Guide
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </a>
+                  </div>
+
+                  <!-- Travel -->
+                  <table
+                    class="ornament"
+                    role="presentation"
+                    align="center"
+                    cellpadding="0"
+                    cellspacing="0"
+                  >
+                    <tr>
+                      <td valign="middle" style="width: 45%; padding: 0">
+                        <div
+                          style="
+                            height: 1px;
+                            background-color: #c89a52;
+                            background-image: linear-gradient(
+                              to right,
+                              rgba(200, 154, 82, 0) 0%,
+                              #c89a52 50%,
+                              rgba(200, 154, 82, 0) 100%
+                            );
+                            font-size: 0;
+                            line-height: 0;
+                          "
+                        >
+                          &nbsp;
+                        </div>
+                      </td>
+                      <td class="diamond" valign="middle">&#10022;</td>
+                      <td valign="middle" style="width: 45%; padding: 0">
+                        <div
+                          style="
+                            height: 1px;
+                            background-color: #c89a52;
+                            background-image: linear-gradient(
+                              to right,
+                              rgba(200, 154, 82, 0) 0%,
+                              #c89a52 50%,
+                              rgba(200, 154, 82, 0) 100%
+                            );
+                            font-size: 0;
+                            line-height: 0;
+                          "
+                        >
+                          &nbsp;
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+                  <div
+                    class="section-title"
+                    style="
+                      font-family:
+                        &quot;blue_mirage&quot;, &quot;Playfair Display&quot;,
+                        Georgia, serif;
+                    "
+                  >
+                    Plan Your Trip
+                  </div>
+
+                  <table class="travel-row" role="presentation" align="center">
                     <tr>
                       <td class="travel-cell">
-                        <div class="icon">
-                          <img src="cid:icon-stay" alt="Stay" width="24" height="24" style="display:inline-block; border:0;" />
-                        </div>
-                        <div class="label">Stay</div>
+                        <a
+                          href="{{TRAVEL_URL}}"
+                          target="_blank"
+                          rel="noopener"
+                          class="travel-link"
+                        >
+                          <div class="icon">
+                            <img
+                              src="cid:icon-travel"
+                              alt="Travel"
+                              width="40"
+                              height="40"
+                              style="display: inline-block; border: 0"
+                            />
+                          </div>
+                          <div class="label">Travel</div>
+                        </a>
                       </td>
                       <td class="travel-cell">
-                        <div class="icon">
-                          <img src="cid:icon-travel" alt="Travel" width="24" height="24" style="display:inline-block; border:0;" />
-                        </div>
-                        <div class="label">Travel</div>
-                      </td>
-                      <td class="travel-cell">
-                        <div class="icon">
-                          <img src="cid:icon-explore" alt="Explore" width="24" height="24" style="display:inline-block; border:0;" />
-                        </div>
-                        <div class="label">Explore</div>
-                      </td>
-                      <td class="travel-cell">
-                        <div class="icon">
-                          <img src="cid:icon-info" alt="Info" width="24" height="24" style="display:inline-block; border:0;" />
-                        </div>
-                        <div class="label">Info</div>
+                        <a
+                          href="{{EXPLORE_URL}}"
+                          target="_blank"
+                          rel="noopener"
+                          class="travel-link"
+                        >
+                          <div class="icon">
+                            <img
+                              src="cid:icon-explore"
+                              alt="Explore"
+                              width="40"
+                              height="40"
+                              style="display: inline-block; border: 0"
+                            />
+                          </div>
+                          <div class="label">Explore</div>
+                        </a>
                       </td>
                     </tr>
                   </table>
 
-                  <div class="cta-section">
-                    <a href="{{HOTEL_URL}}" class="cta-btn secondary" style="color:#4a2872 !important; text-decoration:none;">
-                      <span style="color:#4a2872 !important;">Book Hotel</span>
-                    </a>
-                    <a href="{{TRAVEL_URL}}" class="cta-btn" style="color:#ffffff !important; text-decoration:none;">
-                      <span style="color:#ffffff !important;">Open Travel Guide &rarr;</span>
-                    </a>
-                  </div>
-
                   <!-- Community -->
-                  <div class="ornament">&#10086; &mdash; &#10086;</div>
+                  <table
+                    class="ornament"
+                    role="presentation"
+                    align="center"
+                    cellpadding="0"
+                    cellspacing="0"
+                  >
+                    <tr>
+                      <td valign="middle" style="width: 45%; padding: 0">
+                        <div
+                          style="
+                            height: 1px;
+                            background-color: #c89a52;
+                            background-image: linear-gradient(
+                              to right,
+                              rgba(200, 154, 82, 0) 0%,
+                              #c89a52 50%,
+                              rgba(200, 154, 82, 0) 100%
+                            );
+                            font-size: 0;
+                            line-height: 0;
+                          "
+                        >
+                          &nbsp;
+                        </div>
+                      </td>
+                      <td class="diamond" valign="middle">&#10022;</td>
+                      <td valign="middle" style="width: 45%; padding: 0">
+                        <div
+                          style="
+                            height: 1px;
+                            background-color: #c89a52;
+                            background-image: linear-gradient(
+                              to right,
+                              rgba(200, 154, 82, 0) 0%,
+                              #c89a52 50%,
+                              rgba(200, 154, 82, 0) 100%
+                            );
+                            font-size: 0;
+                            line-height: 0;
+                          "
+                        >
+                          &nbsp;
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
                   <div class="section-title">Stay Connected</div>
 
                   <div class="community">
                     <p class="community-text">
-                      Join our community channels for event updates and announcements.
+                      Join our community channels for event updates and
+                      announcements.
                     </p>
 
                     <div class="community-buttons">
                       <a href="{{WHATSAPP_URL}}" class="comm-btn whatsapp">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4a2872" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle; margin-right:8px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/><path d="M8.5 9.5c0 3 2 5 5 5"/><path d="M8.5 9.5c0-.6.4-1 1-1h.5l.7 1.7-.7.6c.4.8 1 1.4 1.8 1.8l.6-.7 1.7.7v.5c0 .6-.4 1-1 1"/></svg>
-                        <span style="vertical-align:middle;">WhatsApp</span>
+                        <img
+                          src="{{WHATSAPP_ICON_URL}}"
+                          alt="WhatsApp"
+                          width="24"
+                          height="24"
+                          style="vertical-align: middle; margin-right: 8px"
+                        />
+                        <span style="vertical-align: middle; color: #1a1a2e"
+                          >WhatsApp</span
+                        >
                       </a>
                       <a href="{{TELEGRAM_URL}}" class="comm-btn telegram">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4a2872" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle; margin-right:8px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                        <span style="vertical-align:middle;">Telegram</span>
+                        <img
+                          src="{{TELEGRAM_ICON_URL}}"
+                          alt="Telegram"
+                          width="24"
+                          height="24"
+                          style="vertical-align: middle; margin-right: 8px"
+                        />
+                        <span style="vertical-align: middle; color: #1a1a2e"
+                          >Telegram</span
+                        >
                       </a>
                     </div>
 
-                    <p class="follow-label">Follow us on Instagram and YouTube for latest information</p>
+                    <p class="follow-label">
+                      Follow us on Instagram and YouTube for latest information
+                    </p>
 
                     <div class="social-icons">
-                      <a href="{{INSTAGRAM_URL}}" class="social-icon" aria-label="Instagram">
-                        <img src="{{INSTAGRAM_ICON_URL}}" alt="Instagram" width="40" height="40" />
+                      <a
+                        href="{{INSTAGRAM_URL}}"
+                        class="social-icon"
+                        aria-label="Instagram"
+                      >
+                        <img
+                          src="{{INSTAGRAM_ICON_URL}}"
+                          alt="Instagram"
+                          width="40"
+                          height="40"
+                        />
                       </a>
-                      <a href="{{YOUTUBE_URL}}" class="social-icon" aria-label="YouTube">
-                        <img src="{{YOUTUBE_ICON_URL}}" alt="YouTube" width="55" height="40" />
+                      <a
+                        href="{{YOUTUBE_URL}}"
+                        class="social-icon"
+                        aria-label="YouTube"
+                      >
+                        <img
+                          src="{{YOUTUBE_ICON_URL}}"
+                          alt="YouTube"
+                          width="40"
+                          height="40"
+                        />
                       </a>
                     </div>
 
                     <p class="private-note">
-                      These invite links are private. Please do not share publicly.
+                      These invite links are private. Please do not share
+                      publicly.
                     </p>
                   </div>
+
+                  <!-- Contact -->
+                  <table
+                    class="ornament"
+                    role="presentation"
+                    align="center"
+                    cellpadding="0"
+                    cellspacing="0"
+                  >
+                    <tr>
+                      <td valign="middle" style="width: 45%; padding: 0">
+                        <div
+                          style="
+                            height: 1px;
+                            background-color: #c89a52;
+                            background-image: linear-gradient(
+                              to right,
+                              rgba(200, 154, 82, 0) 0%,
+                              #c89a52 50%,
+                              rgba(200, 154, 82, 0) 100%
+                            );
+                            font-size: 0;
+                            line-height: 0;
+                          "
+                        >
+                          &nbsp;
+                        </div>
+                      </td>
+                      <td class="diamond" valign="middle">&#10022;</td>
+                      <td valign="middle" style="width: 45%; padding: 0">
+                        <div
+                          style="
+                            height: 1px;
+                            background-color: #c89a52;
+                            background-image: linear-gradient(
+                              to right,
+                              rgba(200, 154, 82, 0) 0%,
+                              #c89a52 50%,
+                              rgba(200, 154, 82, 0) 100%
+                            );
+                            font-size: 0;
+                            line-height: 0;
+                          "
+                        >
+                          &nbsp;
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+                  <div class="section-title">Questions?</div>
+
+                  <table
+                    role="presentation"
+                    style="
+                      width: 100%;
+                      margin: 0 0 8px;
+                      border-collapse: separate;
+                    "
+                  >
+                    <tr>
+                      <td
+                        style="
+                          background: #faf6fd;
+                          border: 1px solid #ede0f5;
+                          border-radius: 10px;
+                          padding: 20px;
+                          text-align: center;
+                        "
+                      >
+                        <p
+                          style="
+                            font-size: 13px;
+                            color: #6b5a82;
+                            margin: 0 0 14px;
+                            line-height: 1.5;
+                          "
+                        >
+                          Reach out...
+                        </p>
+
+                        <p
+                          style="
+                            font-family:
+                              &quot;blue_mirage&quot;,
+                              &quot;Playfair Display&quot;, Georgia, serif;
+                            font-size: 14px;
+                            font-weight: 700;
+                            color: #4a2872;
+                            margin: 0 0 14px;
+                          "
+                        >
+                          Varun Thaker
+                        </p>
+
+                        <table
+                          role="presentation"
+                          style="
+                            margin: 0 auto;
+                            border-collapse: separate;
+                            border-spacing: 0;
+                          "
+                        >
+                          <tr>
+                            <td
+                              width="90"
+                              style="
+                                width: 90px;
+                                padding: 4px 8px 4px 0;
+                                text-align: left;
+                                vertical-align: middle;
+                                white-space: nowrap;
+                              "
+                            >
+                              <span
+                                style="
+                                  font-size: 12px;
+                                  letter-spacing: 0.3px;
+                                  color: #9c8eb0;
+                                  font-weight: 600;
+                                "
+                                >Email</span
+                              >
+                            </td>
+                            <td
+                              style="
+                                padding: 4px 0;
+                                text-align: left;
+                                vertical-align: middle;
+                                white-space: nowrap;
+                              "
+                            >
+                              <a
+                                href="mailto:hpam@yds-germany.de"
+                                style="
+                                  color: #6b3fa0;
+                                  text-decoration: none;
+                                  font-size: 13px;
+                                  font-weight: 600;
+                                "
+                                >hpam@yds-germany.de</a
+                              >
+                            </td>
+                          </tr>
+                          <tr>
+                            <td
+                              width="90"
+                              style="
+                                width: 90px;
+                                padding: 4px 8px 4px 0;
+                                text-align: left;
+                                vertical-align: middle;
+                                white-space: nowrap;
+                              "
+                            >
+                              <span
+                                style="
+                                  font-size: 12px;
+                                  letter-spacing: 0.3px;
+                                  color: #9c8eb0;
+                                  font-weight: 600;
+                                "
+                                >WhatsApp</span
+                              >
+                            </td>
+                            <td
+                              style="
+                                padding: 4px 0;
+                                text-align: left;
+                                vertical-align: middle;
+                                white-space: nowrap;
+                              "
+                            >
+                              <a
+                                href="https://wa.me/4917685645884"
+                                style="
+                                  color: #6b3fa0;
+                                  text-decoration: none;
+                                  font-size: 13px;
+                                  font-weight: 600;
+                                "
+                                >+49 176 8564 5884</a
+                              >
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
                 </div>
 
                 <!-- Footer -->
                 <div class="footer">
-                  <div class="contact">
-                    Questions?
-                    <a href="mailto:info@yds-germany.de">info@yds-germany.de</a>
+                  <div class="copyright">
+                    &copy; 2026 Yogi Divine Society e.V
                   </div>
-                  <div class="copyright">&copy; 2026 Yogi Divine Society Germany</div>
                 </div>
               </td>
             </tr>
