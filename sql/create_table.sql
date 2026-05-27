@@ -72,15 +72,21 @@ CREATE TABLE country_quotas (
   id            UUID  PRIMARY KEY DEFAULT gen_random_uuid(),
   country_code  TEXT  UNIQUE NOT NULL,        -- e.g. 'DE', 'US', 'IN'
   max_members   INT   NOT NULL CHECK (max_members > 0),
+  country_name  TEXT,
+  dial_code     TEXT,
+  flag          TEXT,
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Seed with initial quotas (update numbers as needed)
-INSERT INTO country_quotas (country_code, max_members) VALUES
-  ('DE', 100),
-  ('AT', 50),
-  ('CH', 50),
-  ('GB', 30),
-  ('US', 20),
-  ('IN', 30),
-  ('NZ', 20);
+-- Seed with current production quotas (keep in sync with frontend dropdown in
+-- hp-landing-page/src/data/data.ts)
+INSERT INTO country_quotas (country_code, max_members, country_name, dial_code, flag) VALUES
+  ('AE',   5, 'United Arab Emirates', '+971', '🇦🇪'),
+  ('AU',   5, 'Australia',            '+61',  '🇦🇺'),
+  ('CA',  50, 'Canada',               '+1',   '🇨🇦'),
+  ('DE', 150, 'Germany',              '+49',  '🇩🇪'),
+  ('GB', 100, 'United Kingdom',       '+44',  '🇬🇧'),
+  ('IN',  30, 'India',                '+91',  '🇮🇳'),
+  ('NZ',   5, 'New Zealand',          '+64',  '🇳🇿'),
+  ('PL',  10, 'Poland',               '+48',  '🇵🇱'),
+  ('US', 100, 'United States',        '+1',   '🇺🇸');
