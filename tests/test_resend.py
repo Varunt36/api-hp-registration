@@ -18,18 +18,28 @@ class _Result:
 
 
 class _FakeQuery:
-    """Records the chained calls and returns the canned rows registered for a table."""
+    """Honors eq/ilike/in_ filters so the tests actually exercise the
+    server-side scoping (paid check, reference ownership, registration grouping)
+    rather than passing regardless of whether those filters are applied."""
 
     def __init__(self, rows):
-        self._rows = rows
+        self._rows = list(rows)
 
     def select(self, *a, **k):
         return self
 
-    def eq(self, *a, **k):
+    def eq(self, col, val):
+        self._rows = [r for r in self._rows if r.get(col) == val]
         return self
 
-    def ilike(self, *a, **k):
+    def ilike(self, col, val):
+        needle = str(val).strip().lower()
+        self._rows = [r for r in self._rows if str(r.get(col) or "").strip().lower() == needle]
+        return self
+
+    def in_(self, col, vals):
+        allowed = set(vals)
+        self._rows = [r for r in self._rows if r.get(col) in allowed]
         return self
 
     def order(self, *a, **k):
@@ -291,3 +301,40 @@ def test_reference_disambiguates(client, patch_auth, auth_headers, monkeypatch, 
     )
     assert resp.status_code == 200
     assert resp.json()["reference"] == "HP-2026-00099"
+
+
+# --------------------------------------------------------------------------
+# 409 — candidate lead_name must be the registration's TRUE lead (M1), not the
+# email-matched member (regression test: the entered email is a secondary member).
+# --------------------------------------------------------------------------
+def test_409_candidate_lead_name_is_true_lead(
+    client, patch_auth, auth_headers, monkeypatch, sent_emails
+):
+    # "shared@example.com" is the M2 (secondary) member in BOTH registrations.
+    m1_r1 = {**LEAD, "id": "a1", "registration_id": "r1", "ticket_number": "HP-2026-00042-M1",
+             "first_name": "Asha", "last_name": "Patel", "email": "asha@example.com"}
+    m2_r1 = {**LEAD, "id": "a2", "registration_id": "r1", "ticket_number": "HP-2026-00042-M2",
+             "first_name": "Ravi", "last_name": "Patel", "email": "shared@example.com"}
+    m1_r2 = {**LEAD, "id": "b1", "registration_id": "r2", "ticket_number": "HP-2026-00099-M1",
+             "first_name": "Meera", "last_name": "Shah", "email": "meera@example.com"}
+    m2_r2 = {**LEAD, "id": "b2", "registration_id": "r2", "ticket_number": "HP-2026-00099-M2",
+             "first_name": "Bhavna", "last_name": "Shah", "email": "shared@example.com"}
+    reg_b = {**REG, "id": "r2", "seq": 99, "reference": "HP-2026-00099", "country": "AT"}
+
+    _patch_db(monkeypatch, {
+        "members": [m1_r1, m2_r1, m1_r2, m2_r2],
+        "registrations": [REG, reg_b],
+        "payments": [
+            {"registration_id": "r1", "status": "paid"},
+            {"registration_id": "r2", "status": "paid"},
+        ],
+    })
+
+    resp = client.post(
+        "/resend-confirmation", json={"email": "shared@example.com"}, headers=auth_headers
+    )
+    assert resp.status_code == 409
+    candidates = resp.json()["error"]["candidates"]
+    leads = {c["reference"]: c["lead_name"] for c in candidates}
+    assert leads == {"HP-2026-00042": "Asha Patel", "HP-2026-00099": "Meera Shah"}
+    assert sent_emails == []

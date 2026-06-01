@@ -23,6 +23,37 @@ def _lead_name(members: list[dict]) -> str:
     return f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
 
 
+def _build_candidates(reg_ids: set, regs_by_id: dict) -> list[dict]:
+    """Build the 409 candidate list. The lead name is derived from each
+    registration's true first member (M1) — NOT the email-matched member, which
+    may be a secondary member — so the admin sees the real group lead."""
+    all_members = (
+        supabase.table("members")
+        .select("*")
+        .in_("registration_id", list(reg_ids))
+        .execute()
+        .data
+        or []
+    )
+    members_by_reg: dict = {}
+    for m in all_members:
+        members_by_reg.setdefault(m["registration_id"], []).append(m)
+
+    candidates = []
+    for rid in reg_ids:
+        reg = regs_by_id.get(rid)
+        if not reg:
+            continue
+        reg_members = _ordered_members(members_by_reg.get(rid, []))
+        candidates.append({
+            "reference": reg.get("reference"),
+            "lead_name": _lead_name(reg_members) if reg_members else "",
+            "member_count": reg.get("member_count"),
+            "country": reg.get("country"),
+        })
+    return candidates
+
+
 def resend_confirmation(entered_email: str, reference: str | None = None) -> dict:
     """Re-send the original confirmation email to a single registered, paid address.
 
@@ -44,11 +75,16 @@ def resend_confirmation(entered_email: str, reference: str | None = None) -> dic
 
     reg_ids = {m["registration_id"] for m in matched}
 
-    # 2) Resolve the registration.
+    # 2) Resolve the registration (fetch only the relevant rows).
     registrations = (
-        supabase.table("registrations").select("*").execute().data or []
+        supabase.table("registrations")
+        .select("*")
+        .in_("id", list(reg_ids))
+        .execute()
+        .data
+        or []
     )
-    regs_by_id = {r["id"]: r for r in registrations if r["id"] in reg_ids}
+    regs_by_id = {r["id"]: r for r in registrations}
 
     if reference:
         target_reg = next(
@@ -62,21 +98,7 @@ def resend_confirmation(entered_email: str, reference: str | None = None) -> dic
     elif len(reg_ids) == 1:
         target_reg = regs_by_id[next(iter(reg_ids))]
     else:
-        candidates = []
-        for rid in reg_ids:
-            reg = regs_by_id.get(rid)
-            if not reg:
-                continue
-            reg_members = _ordered_members(
-                [m for m in matched if m["registration_id"] == rid]
-            )
-            candidates.append({
-                "reference": reg.get("reference"),
-                "lead_name": _lead_name(reg_members) if reg_members else "",
-                "member_count": reg.get("member_count"),
-                "country": reg.get("country"),
-            })
-        raise MultipleRegistrationsError(candidates)
+        raise MultipleRegistrationsError(_build_candidates(reg_ids, regs_by_id))
 
     registration_id = target_reg["id"]
     out_reference = target_reg.get("reference") or ""
