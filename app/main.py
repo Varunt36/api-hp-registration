@@ -10,8 +10,8 @@ from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
-from app.core.exceptions import AppError
-from app.routers import payment
+from app.core.exceptions import AppError, MultipleRegistrationsError
+from app.routers import payment, resend
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -49,6 +49,15 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(MultipleRegistrationsError)
+async def multiple_registrations_handler(request: Request, exc: MultipleRegistrationsError):
+    # Same envelope as other AppErrors, plus the candidate list the FE needs to disambiguate.
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"code": exc.code, "message": exc.message, "candidates": exc.candidates}},
+    )
 
 
 @app.exception_handler(AppError)
@@ -118,6 +127,7 @@ app.add_middleware(
 )
 
 app.include_router(payment.router)
+app.include_router(resend.router)
 
 
 @app.get("/health")

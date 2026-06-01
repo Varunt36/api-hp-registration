@@ -62,3 +62,26 @@ class PaymentProviderRejected(PaymentError):
     def __init__(self, provider: str, detail: str = ""):
         self.detail = detail
         super().__init__("Payment could not be initiated. Please contact support.")
+
+
+class AuthError(AppError):
+    code = "UNAUTHORIZED"
+    status_code = 401
+    default_message = "Authentication required."
+
+
+class RegistrationNotFoundError(AppError):
+    code = "REGISTRATION_NOT_FOUND"
+    status_code = 404
+    default_message = "No registration found for this email."
+
+
+class MultipleRegistrationsError(AppError):
+    """Email maps to more than one registration; caller must disambiguate with a reference."""
+    code = "MULTIPLE_REGISTRATIONS"
+    status_code = 409
+    default_message = "This email matches multiple registrations. Please choose one."
+
+    def __init__(self, candidates: list[dict], message: str | None = None):
+        self.candidates = candidates
+        super().__init__(message)
