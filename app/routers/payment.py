@@ -102,13 +102,17 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
             return {"status": "ok"}
 
         txn = session.get("payment_intent") or session["id"]
-        logger.info(f"[WEBHOOK 4/5] scheduling complete_payment: intent={intent_id} txn={txn}")
+        # amount_total is the actual charged total in cents, after any voucher/discount.
+        amount_total = session.get("amount_total")
+        paid_amount = amount_total / 100 if amount_total is not None else None
+        logger.info(f"[WEBHOOK 4/5] scheduling complete_payment: intent={intent_id} txn={txn} paid={paid_amount}")
         background_tasks.add_task(
             payment_service.complete_payment,
             intent_id=intent_id,
             transaction_id=txn,
             provider="stripe",
             provider_order_id=session.get("id"),
+            paid_amount=paid_amount,
         )
         logger.info(f"[WEBHOOK 5/5] background task scheduled — returning 200 to Stripe")
 
@@ -122,13 +126,17 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
             logger.warning(f"[WEBHOOK 4/5] missing client_reference_id (session={session.get('id')}) — cannot complete")
             return {"status": "ok"}
         txn = session.get("payment_intent") or session["id"]
-        logger.info(f"[WEBHOOK 4/5] scheduling complete_payment: intent={intent_id} txn={txn}")
+        # amount_total is the actual charged total in cents, after any voucher/discount.
+        amount_total = session.get("amount_total")
+        paid_amount = amount_total / 100 if amount_total is not None else None
+        logger.info(f"[WEBHOOK 4/5] scheduling complete_payment: intent={intent_id} txn={txn} paid={paid_amount}")
         background_tasks.add_task(
             payment_service.complete_payment,
             intent_id=intent_id,
             transaction_id=txn,
             provider="stripe",
             provider_order_id=session.get("id"),
+            paid_amount=paid_amount,
         )
         logger.info(f"[WEBHOOK 5/5] background task scheduled — returning 200 to Stripe")
 
