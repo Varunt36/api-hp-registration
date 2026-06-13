@@ -25,6 +25,7 @@ def create_stripe_session(intent_id: str, amount: float, member_count: int) -> s
                 "quantity": 1,
             }],
             mode="payment",
+            allow_promotion_codes=True,
             success_url=f"{settings.frontend_url}/payment/success?intent_id={intent_id}",
             cancel_url=f"{settings.frontend_url}/payment/cancel",
             client_reference_id=intent_id,

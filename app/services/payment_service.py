@@ -106,7 +106,7 @@ def mark_intent_failed(intent_id: str, reason: str) -> None:
 
 # --- Orchestration --------------------------------------------------------
 
-def complete_payment(intent_id: str, transaction_id: str, provider: str, provider_order_id: str | None = None) -> None:
+def complete_payment(intent_id: str, transaction_id: str, provider: str, provider_order_id: str | None = None, paid_amount: float | None = None) -> None:
     """Finalize a registration after a successful payment webhook. Idempotent."""
     ctx = f"provider={provider} txn={transaction_id} intent={intent_id}"
 
@@ -146,7 +146,8 @@ def complete_payment(intent_id: str, transaction_id: str, provider: str, provide
         mark_intent_failed(intent_id, "We could not save your registration after payment. Our team has been notified — please contact support with your payment reference.")
         return
 
-    amount = float(intent["amount"])
+    # Record what the provider actually charged (reflects any voucher/discount).
+    amount = paid_amount if paid_amount is not None else float(intent["amount"])
     try:
         supabase.table("payments").insert({
             "registration_id": registration_id,
