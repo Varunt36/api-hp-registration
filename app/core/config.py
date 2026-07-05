@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+BLUE_MIRAGE_FONT_URL = "https://klfmhhsamhraxohdynyz.supabase.co/storage/v1/object/sign/Fonts/blue_mirage-webfont.woff2?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8xNDA3ZDEwNy1mNzI3LTQ0ZjktYTU5OC02ODg5NmQxYTNiNDUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJGb250cy9ibHVlX21pcmFnZS13ZWJmb250LndvZmYyIiwiaWF0IjoxNzc5OTAxMDA1LCJleHAiOjE4NDI5NzMwMDV9.3NvzbJpA3zSZqRxUud433MZTKrE-jNW3lzrOiTiGdfg"
 
 class Settings(BaseSettings):
     supabase_url: str
@@ -17,6 +18,12 @@ class Settings(BaseSettings):
 
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
+
+    form_url: str = "https://forms.gle/4KEsyEbCRvZnM3Wx5"
+    wa_phone_number_id: str = ""
+    wa_access_token: str = ""
+    wa_template_name: str = "registration_form_link"
+    wa_template_lang: str = "en"
 
     price_per_person_eur: float = 290.0
 

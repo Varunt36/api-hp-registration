@@ -6,7 +6,7 @@ from typing import Dict, List
 
 import resend
 
-from app.core.config import settings
+from app.core.config import BLUE_MIRAGE_FONT_URL as _BLUE_MIRAGE_FONT_URL, settings
 
 logger = logging.getLogger(__name__)
 resend.api_key = settings.resend_api_key
@@ -40,7 +40,6 @@ _TRAVEL_ICONS = {
 _HOTEL_URL = "https://www.radissonhotels.com/en-us/booking/room-display?hotelCode=DEBERAAA&checkInDate=2026-08-15&checkOutDate=2026-08-20&adults%5B%5D=2&children%5B%5D=0&aoc%5B%5D=&searchType=pac&promotionCode=YDSINDZE&voucher=&brands=&brandFirst=&so=&usePoints=false"
 _TRAVEL_URL = "https://hpam.hariprabodham.de/venue"
 _EXPLORE_URL = "https://hpam.hariprabodham.de/explore"
-_BLUE_MIRAGE_FONT_URL = "https://klfmhhsamhraxohdynyz.supabase.co/storage/v1/object/sign/Fonts/blue_mirage-webfont.woff2?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8xNDA3ZDEwNy1mNzI3LTQ0ZjktYTU5OC02ODg5NmQxYTNiNDUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJGb250cy9ibHVlX21pcmFnZS13ZWJmb250LndvZmYyIiwiaWF0IjoxNzc5OTAxMDA1LCJleHAiOjE4NDI5NzMwMDV9.3NvzbJpA3zSZqRxUud433MZTKrE-jNW3lzrOiTiGdfg"
 _HOTEL_VIDEO_URL = "https://klfmhhsamhraxohdynyz.supabase.co/storage/v1/object/public/hotel-room-booking-video/hotel-room-booking-guide.mp4"
 
 

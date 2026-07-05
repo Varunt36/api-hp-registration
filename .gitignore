@@ -12,3 +12,8 @@ build/
 .vscode/
 .DS_Store
 .claude
+
+# Outreach artifacts contain member PII — never commit
+send_report.csv
+send_form_non_germany.log
+form_reminder_preview.html
