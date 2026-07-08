@@ -54,7 +54,7 @@ CREATE TABLE payments (
   registration_id  UUID           UNIQUE NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
   status           TEXT           NOT NULL DEFAULT 'pending'
                                   CHECK (status IN ('pending', 'paid', 'failed')),
-  amount           NUMERIC(10, 2) NOT NULL CHECK (amount > 0),
+  amount           NUMERIC(10, 2) NOT NULL CHECK (amount >= 0),  -- >= 0 so 100%-coupon (€0) payments are allowed
   currency         TEXT           NOT NULL DEFAULT 'EUR',
   payment_method   TEXT           CHECK (payment_method IN ('stripe')),
   transaction_id   TEXT           UNIQUE,     -- from Stripe webhook
