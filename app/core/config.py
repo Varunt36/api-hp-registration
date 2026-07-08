@@ -20,10 +20,6 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = ""
 
     form_url: str = "https://forms.gle/4KEsyEbCRvZnM3Wx5"
-    wa_phone_number_id: str = ""
-    wa_access_token: str = ""
-    wa_template_name: str = "registration_form_link"
-    wa_template_lang: str = "en"
 
     price_per_person_eur: float = 290.0
 
