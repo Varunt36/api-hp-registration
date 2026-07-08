@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>HariPrabodham Amrut Mahotsav — Travel &amp; Accommodation Form</title>
+    <!--
+      Mobile-first, table-based layout. ALL critical styling is inlined on the
+      elements so the email survives clients (e.g. Gmail app) that strip <style>.
+      The <style> block below is progressive enhancement only: web fonts and a
+      small-screen padding tweak. Nothing here is required for a correct render.
+    -->
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Source+Sans+3:wght@400;600;700&display=swap");
+
+      @font-face {
+        font-family: "blue_mirage";
+        src: url("{{BLUE_MIRAGE_FONT_URL}}") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+      }
+
+      body {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+      }
+
+      /* Small screens: trim side padding and scale the title down. Classes are
+         paired with inline styles, so this only refines an already-good render. */
+      @media only screen and (max-width: 480px) {
+        .sp {
+          padding-left: 20px !important;
+          padding-right: 20px !important;
+        }
+        .sp-top {
+          padding-top: 24px !important;
+        }
+        .title {
+          font-size: 22px !important;
+        }
+        .cta-link {
+          display: block !important;
+        }
+      }
+    </style>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      background-color: #f4eef7;
+      font-family: 'Source Sans 3', Helvetica, Arial, sans-serif;
+      color: #2d1b4e;
+    "
+  >
+    <!-- Outer full-width background -->
+    <table
+      role="presentation"
+      width="100%"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      style="background-color: #f4eef7"
+    >
+      <tr>
+        <td align="center" style="padding: 20px 12px">
+          <!-- Fluid container: 100% wide up to 600px -->
+          <table
+            role="presentation"
+            width="600"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              width: 100%;
+              max-width: 600px;
+              background-color: #ffffff;
+              border-radius: 14px;
+              overflow: hidden;
+              box-shadow: 0 4px 20px rgba(75, 30, 120, 0.1);
+            "
+          >
+            <!-- ==========  HEADER  ========== -->
+            <tr>
+              <td
+                class="sp sp-top"
+                align="center"
+                bgcolor="#4a2872"
+                style="
+                  background: linear-gradient(135deg, #4a2872 0%, #6b3fa0 100%);
+                  background-color: #4a2872;
+                  padding: 28px 28px 22px;
+                "
+              >
+                <h1
+                  class="title"
+                  style="
+                    margin: 0;
+                    font-family: 'blue_mirage', 'Playfair Display', Georgia, serif;
+                    font-size: 25px;
+                    font-weight: 600;
+                    line-height: 1.25;
+                    letter-spacing: 0.5px;
+                    color: #ffffff;
+                  "
+                >
+                  HariPrabodham &middot; Amrut Mahotsav
+                </h1>
+                <div
+                  style="
+                    margin-top: 8px;
+                    font-family: 'blue_mirage', 'Cormorant Garamond', Georgia, serif;
+                    font-size: 13px;
+                    font-weight: 500;
+                    letter-spacing: 2px;
+                    text-transform: uppercase;
+                    color: rgba(255, 255, 255, 0.82);
+                  "
+                >
+                  Germany 2026
+                </div>
+                <div
+                  style="
+                    margin-top: 8px;
+                    font-family: 'blue_mirage', 'Cormorant Garamond', Georgia, serif;
+                    font-size: 15px;
+                    font-weight: 600;
+                    letter-spacing: 1.2px;
+                    color: #ffc76f;
+                  "
+                >
+                  15 &middot; 16 &middot; 17 August &mdash; Berlin
+                </div>
+              </td>
+            </tr>
+
+            <!-- ==========  GREETING  ========== -->
+            <tr>
+              <td
+                class="sp"
+                align="center"
+                bgcolor="#faf6fd"
+                style="
+                  background-color: #faf6fd;
+                  border-bottom: 1px solid #ede0f5;
+                  padding: 16px 28px;
+                  font-family: 'blue_mirage', 'Cormorant Garamond', Georgia, serif;
+                  font-style: italic;
+                  font-size: 19px;
+                  font-weight: 600;
+                  letter-spacing: 0.5px;
+                  color: #6b3fa0;
+                "
+              >
+                Jai Swaminarayan &#128591;
+              </td>
+            </tr>
+
+            <!-- ==========  BODY  ========== -->
+            <tr>
+              <td class="sp" style="padding: 28px">
+                <p
+                  style="
+                    margin: 0 0 14px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: #4a2872;
+                  "
+                >
+                  Dear {{MEMBER_NAME}},
+                </p>
+
+                <p
+                  style="
+                    margin: 0 0 24px;
+                    font-size: 16px;
+                    line-height: 1.65;
+                    color: #5a4a72;
+                  "
+                >
+                  All registered attendees are kindly requested to fill in their
+                  <strong style="color: #4a2872">travel &amp; accommodation details</strong>,
+                  so our team can serve you better during the event.
+                </p>
+
+                <!-- CTA button (inline-styled, tap-friendly) -->
+                <table
+                  role="presentation"
+                  width="100%"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                >
+                  <tr>
+                    <td align="center" style="padding: 4px 0 14px">
+                      <table
+                        role="presentation"
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        align="center"
+                      >
+                        <tr>
+                          <td
+                            align="center"
+                            bgcolor="#4a2872"
+                            style="
+                              border-radius: 50px;
+                              background: linear-gradient(135deg, #4a2872, #6b3fa0);
+                              background-color: #4a2872;
+                            "
+                          >
+                            <a
+                              href="{{FORM_URL}}"
+                              class="cta-link"
+                              style="
+                                display: inline-block;
+                                padding: 15px 40px;
+                                font-family: 'Source Sans 3', Helvetica, Arial, sans-serif;
+                                font-size: 16px;
+                                font-weight: 600;
+                                letter-spacing: 0.4px;
+                                color: #ffffff;
+                                text-decoration: none;
+                                border-radius: 50px;
+                              "
+                              >&#128221;&nbsp; Fill the form</a
+                            >
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <p
+                  style="
+                    margin: 0 0 24px;
+                    text-align: center;
+                    font-size: 13px;
+                    line-height: 1.5;
+                    color: #9c8eb0;
+                    word-break: break-all;
+                  "
+                >
+                  Or open this link:<br />
+                  <a
+                    href="{{FORM_URL}}"
+                    style="color: #6b3fa0; text-decoration: none; font-weight: 600"
+                    >{{FORM_URL}}</a
+                  >
+                </p>
+
+                <!-- Warning callout -->
+                <table
+                  role="presentation"
+                  width="100%"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="margin: 0 0 24px"
+                >
+                  <tr>
+                    <td
+                      bgcolor="#fff6e6"
+                      style="
+                        background-color: #fff6e6;
+                        border: 1px solid #f0d9a8;
+                        border-left: 4px solid #f0b85e;
+                        border-radius: 10px;
+                        padding: 14px 18px;
+                        font-size: 14px;
+                        line-height: 1.6;
+                        color: #7a5a1e;
+                      "
+                    >
+                      &#9888;&#65039;&nbsp; Please use the
+                      <strong style="color: #5a3e12">same email address</strong>
+                      you used during registration.
+                      <span style="display: block; margin-top: 8px">
+                        We have sent the form link via email and WhatsApp
+                        message &mdash; please fill the form
+                        <strong style="color: #5a3e12">only once</strong>.
+                      </span>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Contacts card -->
+                <table
+                  role="presentation"
+                  width="100%"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                >
+                  <tr>
+                    <td
+                      align="center"
+                      bgcolor="#faf6fd"
+                      style="
+                        background-color: #faf6fd;
+                        border: 1px solid #ede0f5;
+                        border-radius: 10px;
+                        padding: 20px;
+                      "
+                    >
+                      <div
+                        style="
+                          margin: 0 0 12px;
+                          font-size: 11px;
+                          font-weight: 600;
+                          letter-spacing: 1.5px;
+                          text-transform: uppercase;
+                          color: #9c8eb0;
+                        "
+                      >
+                        &#128222;&nbsp; For any queries
+                      </div>
+                      {{CONTACTS}}
+                    </td>
+                  </tr>
+                </table>
+
+                <p
+                  style="
+                    margin: 26px 0 0;
+                    text-align: center;
+                    font-family: 'blue_mirage', 'Cormorant Garamond', Georgia, serif;
+                    font-style: italic;
+                    font-size: 17px;
+                    font-weight: 600;
+                    color: #6b3fa0;
+                  "
+                >
+                  &#128591; Thank you!
+                </p>
+              </td>
+            </tr>
+
+            <!-- ==========  FOOTER  ========== -->
+            <tr>
+              <td
+                class="sp"
+                align="center"
+                bgcolor="#4a2872"
+                style="
+                  background-color: #4a2872;
+                  padding: 18px 28px;
+                  font-size: 11px;
+                  color: rgba(255, 255, 255, 0.6);
+                "
+              >
+                HariPrabodham Amrut Mahotsav &middot; Germany 2026
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
