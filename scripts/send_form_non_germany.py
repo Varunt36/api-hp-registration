@@ -1,22 +1,16 @@
 """
 Fetch all NON-German members from Supabase and send them the Google Form link
-via Email (Resend) and WhatsApp (Meta WhatsApp Business Cloud API).
+via Email (Resend).
 
 No prefill — everyone gets the same plain form link.
 
 Configuration comes from the shared pydantic Settings (app/core/config.py), so
 every knob lives in the same .env as the API:
     FORM_URL                Override the Google Form link
-    WA_PHONE_NUMBER_ID      Meta WhatsApp Business phone number id
-    WA_ACCESS_TOKEN         Permanent access token
-    WA_TEMPLATE_NAME        Approved template name (default: registration_form_link)
-    WA_TEMPLATE_LANG        Template language code — must match the locale the
-                            template was approved under in Meta Business Manager
 
 Run from the repo root so `app` is importable:
     python -m scripts.send_form_non_germany --dry-run   # preview only, sends nothing
     python -m scripts.send_form_non_germany             # actually send
-    python -m scripts.send_form_non_germany --no-whatsapp
     python -m scripts.send_form_non_germany -v          # verbose (DEBUG) console
 
 Send tracking: every attempt is upserted into form_reminder_sends (run
@@ -43,7 +37,6 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-import requests
 import resend
 
 from app.core.config import BLUE_MIRAGE_FONT_URL, settings
@@ -72,11 +65,6 @@ CONTACTS: list[tuple[str, str]] = [
 EMAIL_SUBJECT = "Travel & Accommodation details — HariPrabodham Amrut Mahotsav Germany 2026"
 resend.api_key = settings.resend_api_key
 
-# `or` fallbacks: a blank `WA_TEMPLATE_NAME=` line in .env overrides the
-# Settings default with "", which would silently break every WhatsApp send.
-WA_TEMPLATE_NAME = settings.wa_template_name or "registration_form_link"
-WA_TEMPLATE_LANG = settings.wa_template_lang or "en"
-
 SEND_DELAY_SECONDS = 1.0
 
 # PostgREST silently caps unpaginated selects at the server's max-rows
@@ -102,7 +90,6 @@ class Member:
     member_id: str
     email: str
     full_name: str
-    phone: str  # E.164, e.g. +447911123456 ("" if unknown/implausible)
     country: str
 
 
@@ -160,43 +147,6 @@ def _run_channel(channel: str, member: Member, send: Callable[[Member], None]) -
 # Data access
 # ---------------------------------------------------------------------------
 
-def _normalise_phone(raw: str | None) -> str:
-    """
-    Best-effort E.164, matching how phones are actually stored in this DB:
-    "<calling code> <national number>", e.g. "44 07565964449", "1 2014066640".
-    The calling code is already embedded, so we must NOT prepend it again — we
-    only need to add the leading '+' and strip a national trunk '0'.
-
-    Also tolerates numbers already in '+...' or '00...' form. Returns "" when
-    no plausible number can be formed — the caller then skips WhatsApp for
-    that member instead of guessing (a wrong guess can message a stranger in
-    another country).
-    """
-    if not raw:
-        return ""
-    # "(0)" is a written-out trunk zero ("+49 (0)176...") — never part of E.164.
-    s = raw.strip().replace("(0)", "")
-    if not s:
-        return ""
-    if s.startswith("+"):
-        return "+" + re.sub(r"\D", "", s[1:])
-    if s.startswith("00"):  # international access prefix -> +
-        return "+" + re.sub(r"\D", "", s[2:])
-
-    parts = s.split()
-    if len(parts) >= 2:  # "<cc> <national>" — the common case here
-        cc = re.sub(r"\D", "", parts[0])
-        # removeprefix, not lstrip: the trunk is a single '0'; lstrip("0")
-        # would also eat significant zeros.
-        national = re.sub(r"\D", "", "".join(parts[1:])).removeprefix("0")
-        return f"+{cc}{national}" if cc and national else ""
-
-    # Single token with no '+' and no calling-code separator: the country is
-    # unknowable, and prefixing '+' would fabricate a number in an arbitrary
-    # country. Give up so the caller skips WhatsApp for this member.
-    return ""
-
-
 def _fetch_all(build_query: Callable[[], Any]) -> list[dict]:
     """Drain a PostgREST query page by page (see SUPABASE_PAGE_SIZE).
 
@@ -216,17 +166,16 @@ def fetch_non_german_members() -> list[Member]:
     """All members whose registration.country != 'DE', deduped by email.
 
     Rows are ordered by id so the dedupe picks the same member on every run;
-    within one shared email (family registrations) a row that has a phone
-    wins over one that doesn't, so the household still gets the WhatsApp
-    message. The other family members are intentionally not contacted
-    separately — one form link per email address.
+    within one shared email (family registrations) the first row wins. The
+    other family members are intentionally not contacted separately — one form
+    link per email address.
     """
     logger.info("Fetching non-German members from Supabase...")
     try:
         rows = _fetch_all(lambda: (
             supabase.table("members")
             # Inner join members -> registrations, filtering on the embedded country.
-            .select("id, first_name, last_name, email, phone, registrations!inner(country)")
+            .select("id, first_name, last_name, email, registrations!inner(country)")
             .neq("registrations.country", GERMAN_COUNTRY_CODE)
             .order("id")
         ))
@@ -239,18 +188,16 @@ def fetch_non_german_members() -> list[Member]:
         email = (r.get("email") or "").strip()
         if not email:
             continue
-        member = Member(
+        key = email.lower()
+        if key in members:  # first row per email wins (ordered by id)
+            continue
+        members[key] = Member(
             member_id=r["id"],
             email=email,
             # join+split collapses inner whitespace/newlines a validator missed.
             full_name=" ".join(f"{r.get('first_name') or ''} {r.get('last_name') or ''}".split()),
-            phone=_normalise_phone(r.get("phone")),
             country=(r.get("registrations") or {}).get("country", ""),
         )
-        key = email.lower()
-        existing = members.get(key)
-        if existing is None or (not existing.phone and member.phone):
-            members[key] = member
 
     return sorted(members.values(), key=lambda m: m.full_name.lower())
 
@@ -338,42 +285,6 @@ def send_email(member: Member) -> None:
     })
 
 
-def send_whatsapp(member: Member) -> None:
-    if not member.phone:  # backstop — _run skips phoneless members before this
-        raise ValueError("no phone number on record")
-    if not (settings.wa_phone_number_id and settings.wa_access_token):
-        raise RuntimeError("WA_PHONE_NUMBER_ID / WA_ACCESS_TOKEN not configured")
-
-    url = f"https://graph.facebook.com/v21.0/{settings.wa_phone_number_id}/messages"
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": member.phone.lstrip("+"),
-        "type": "template",
-        "template": {
-            "name": WA_TEMPLATE_NAME,
-            "language": {"code": WA_TEMPLATE_LANG},
-            "components": [
-                {
-                    "type": "body",
-                    "parameters": [
-                        {"type": "text", "text": member.full_name},
-                        {"type": "text", "text": FORM_URL},
-                    ],
-                }
-            ],
-        },
-    }
-    headers = {"Authorization": f"Bearer {settings.wa_access_token}"}
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
-    except requests.RequestException as exc:  # network/timeout/DNS
-        raise RuntimeError(f"WhatsApp request failed: {exc}") from exc
-
-    if not response.ok:
-        # Meta returns a useful JSON error body — surface it instead of a bare code.
-        raise RuntimeError(f"WhatsApp API {response.status_code}: {response.text}")
-
-
 # ---------------------------------------------------------------------------
 # Orchestration
 # ---------------------------------------------------------------------------
@@ -403,25 +314,21 @@ def _print_dry_run(members: list[Member], prior: dict[tuple[str, str], dict]) ->
     """Full member details are shown here on purpose — verifying the recipient
     list is the point of a dry run — and both log targets stay local/gitignored."""
     for m in members:
-        already = [ch for ch in ("email", "whatsapp")
-                   if prior.get((m.member_id, ch), {}).get("status") == "sent"]
-        note = f"  [already sent: {', '.join(already)}]" if already else ""
-        logger.info("  %s | %s | %s | %s%s",
-                    m.full_name, m.email, m.phone or "(no phone)", m.country, note)
+        already = ("  [already sent]"
+                   if prior.get((m.member_id, "email"), {}).get("status") == "sent" else "")
+        logger.info("  %s | %s | %s%s", m.full_name, m.email, m.country, already)
     logger.info("Form link: %s", FORM_URL)
     logger.info("Dry run — nothing sent.")
 
 
 def _channel_result(channel: str, member: Member, send: Callable[[Member], None],
                     disabled: bool, prior: dict[tuple[str, str], dict]) -> ChannelResult:
-    """Decide skip vs attempt for one channel, then run the send."""
+    """Decide skip vs attempt for one channel, then run to send."""
     if disabled:
         return ChannelResult(Outcome.SKIPPED)
     previous = prior.get((member.member_id, channel))
     if previous and previous["status"] == "sent":
         return ChannelResult(Outcome.SKIPPED, "already sent")
-    if channel == "whatsapp" and not member.phone:
-        return ChannelResult(Outcome.SKIPPED, "no phone number")
     return _run_channel(channel, member, send)
 
 
