@@ -1,6 +1,10 @@
 """
-Fetch all NON-German members from Supabase and send them the Google Form link
-via Email (Resend).
+Fetch all members of ONE country from Supabase and send them the Google Form
+link via Email (Resend).
+
+The country is required (--country CODE, e.g. GB) so every send is a deliberate,
+per-country roll-out — you can never accidentally email everyone. Only members
+whose registration.country matches the given code are emailed and recorded.
 
 No prefill — everyone gets the same plain form link.
 
@@ -9,18 +13,18 @@ every knob lives in the same .env as the API:
     FORM_URL                Override the Google Form link
 
 Run from the repo root so `app` is importable:
-    python -m scripts.send_form_non_germany --dry-run   # preview only, sends nothing
-    python -m scripts.send_form_non_germany             # actually send
-    python -m scripts.send_form_non_germany -v          # verbose (DEBUG) console
+    python -m scripts.send_form_non_germany --country GB --dry-run  # preview only
+    python -m scripts.send_form_non_germany --country GB            # actually send
+    python -m scripts.send_form_non_germany --country GB -v         # verbose console
 
 Send tracking: every attempt is upserted into form_reminder_sends (run
-sql/form_reminder_sends.sql once first), and members already marked 'sent' on
-a channel are skipped on later runs — so re-running only reaches the
-unreached. A per-run CSV receipt (send_report.csv) is written incrementally,
-one flushed row per member, so even an interrupted run leaves a receipt.
-Emails are masked in the log file; full addresses live only in the CSV.
-Both artifacts contain member data and are gitignored — never commit them.
-Per-recipient failures are logged and recorded, never aborting the whole run.
+sql/form_reminder_sends.sql once first), and members already marked 'sent' are
+skipped on later runs — so re-running only reaches the unreached. A per-run CSV
+receipt (send_report.csv) is written incrementally, one flushed row per member,
+so even an interrupted run leaves a receipt. Emails are masked in the log file;
+full addresses live only in the CSV. Both artifacts contain member data and are
+gitignored — never commit them. Per-recipient failures are logged and recorded,
+never aborting the whole run.
 """
 
 import argparse
@@ -53,8 +57,9 @@ REPORT_FILE = "send_report.csv"
 # The Google Form link attendees are asked to fill in — the public share link.
 FORM_URL = settings.form_url
 
-# Country code that counts as "German" and is therefore EXCLUDED.
-GERMAN_COUNTRY_CODE = "DE"
+# The only delivery channel; stored on every form_reminder_sends row so the
+# table can still distinguish channels if another is ever added back.
+CHANNEL = "email"
 
 # People shown in the email's "For any queries" section.
 CONTACTS: list[tuple[str, str]] = [
@@ -70,6 +75,11 @@ SEND_DELAY_SECONDS = 1.0
 # PostgREST silently caps unpaginated selects at the server's max-rows
 # (1000 by default on Supabase), so all fetches page through .range().
 SUPABASE_PAGE_SIZE = 1000
+
+# A single `.in_(...)` filter is serialised into the query string, so a huge id
+# list would blow past PostgREST's URL length limit — prior sends are looked up
+# in chunks of this size.
+PRIOR_LOOKUP_CHUNK = 200
 
 _TEMPLATE_PATH = os.path.join(
     os.path.dirname(__file__), "..", "app", "templates", "form_reminder_email.html"
@@ -100,9 +110,9 @@ class Outcome(str, Enum):
 
 
 @dataclass(frozen=True)
-class ChannelResult:
+class SendResult:
     outcome: Outcome
-    detail: str = ""  # failure reason, or why the channel was skipped
+    detail: str = ""  # failure reason, or why the send was skipped
 
     def render(self) -> str:
         """Display/CSV string: 'OK', 'skipped (why)', 'FAILED: <reason>'."""
@@ -121,26 +131,9 @@ def _mask_email(email: str) -> str:
 
 
 def _csv_cell(value: str) -> str:
-    """Neutralise spreadsheet formula injection: names are user input, and a
-    leading =, +, - or @ would execute as a formula when opened in Excel."""
+    """Neutralise spreadsheet formula injection: names/emails are user input, and
+    a leading =, +, - or @ would execute as a formula when opened in Excel."""
     return "'" + value if value[:1] in "=+-@" else value
-
-
-def _run_channel(channel: str, member: Member, send: Callable[[Member], None]) -> ChannelResult:
-    """Run one send, converting any exception into a FAILED result.
-
-    Never raises — a single recipient's failure must not abort the whole run.
-    The short reason is kept on the result (and CSV); the full traceback goes
-    to the log file at DEBUG so nothing is lost.
-    """
-    try:
-        send(member)
-        logger.info("%s -> %s: OK", channel, _mask_email(member.email))
-        return ChannelResult(Outcome.OK)
-    except Exception as exc:
-        logger.warning("%s -> %s: FAILED: %s", channel, _mask_email(member.email), exc)
-        logger.debug("Traceback for %s send", channel, exc_info=True)
-        return ChannelResult(Outcome.FAILED, str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -162,21 +155,21 @@ def _fetch_all(build_query: Callable[[], Any]) -> list[dict]:
             return rows
 
 
-def fetch_non_german_members() -> list[Member]:
-    """All members whose registration.country != 'DE', deduped by email.
+def fetch_members_by_country(country: str) -> list[Member]:
+    """All members whose registration.country == `country`, deduped by email.
 
     Rows are ordered by id so the dedupe picks the same member on every run;
     within one shared email (family registrations) the first row wins. The
     other family members are intentionally not contacted separately — one form
     link per email address.
     """
-    logger.info("Fetching non-German members from Supabase...")
+    logger.info("Fetching members for country %s from Supabase...", country)
     try:
         rows = _fetch_all(lambda: (
             supabase.table("members")
             # Inner join members -> registrations, filtering on the embedded country.
             .select("id, first_name, last_name, email, registrations!inner(country)")
-            .neq("registrations.country", GERMAN_COUNTRY_CODE)
+            .eq("registrations.country", country)
             .order("id")
         ))
     except Exception as exc:
@@ -202,50 +195,92 @@ def fetch_non_german_members() -> list[Member]:
     return sorted(members.values(), key=lambda m: m.full_name.lower())
 
 
-def fetch_prior_sends() -> dict[tuple[str, str], dict]:
-    """Existing form_reminder_sends rows keyed by (member_id, channel), used
-    to skip already-sent members and to carry the attempts counter forward."""
-    try:
-        rows = _fetch_all(lambda: (
-            supabase.table("form_reminder_sends")
-            .select("member_id, channel, status, attempts")
-            .order("id")
-        ))
-    except Exception as exc:
-        raise RuntimeError(
-            "Could not read form_reminder_sends — did you run "
-            f"sql/form_reminder_sends.sql in Supabase? ({exc})"
-        ) from exc
-    return {(r["member_id"], r["channel"]): r for r in rows}
+def fetch_prior_sends(member_ids: list[str]) -> dict[str, dict]:
+    """Prior email-channel form_reminder_sends for exactly this run's members,
+    keyed by member_id. Scoping to the recipients (and channel) keeps the lookup
+    cheap no matter how large the cross-campaign log grows. The UNIQUE
+    (member_id, channel) constraint guarantees at most one row per member here.
+    """
+    prior: dict[str, dict] = {}
+    for start in range(0, len(member_ids), PRIOR_LOOKUP_CHUNK):
+        chunk = member_ids[start:start + PRIOR_LOOKUP_CHUNK]
+        try:
+            rows = (
+                supabase.table("form_reminder_sends")
+                .select("member_id, status, attempts")
+                .eq("channel", CHANNEL)
+                .in_("member_id", chunk)
+                .execute()
+                .data
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                "Could not read form_reminder_sends — did you run "
+                f"sql/form_reminder_sends.sql in Supabase? ({exc})"
+            ) from exc
+        for r in rows:
+            prior[r["member_id"]] = r
+    return prior
 
 
-def record_send(member: Member, channel: str, result: ChannelResult,
-                prior: dict[tuple[str, str], dict]) -> None:
+def fetch_sent_emails(emails: list[str]) -> set[str]:
+    """Lowercased email addresses already marked 'sent', looked up by ADDRESS
+    (not member_id). The same person can appear under several member rows —
+    duplicate registrations, or one address shared across countries — so keying
+    the skip on the address is what actually guarantees nobody is emailed twice.
+    """
+    sent: set[str] = set()
+    # De-dupe + lowercase before querying; the DB stores the address as sent, so
+    # exact case is what we match, but we compare case-insensitively downstream.
+    unique = sorted({e.strip() for e in emails if e.strip()})
+    for start in range(0, len(unique), PRIOR_LOOKUP_CHUNK):
+        chunk = unique[start:start + PRIOR_LOOKUP_CHUNK]
+        try:
+            rows = (
+                supabase.table("form_reminder_sends")
+                .select("email")
+                .eq("channel", CHANNEL)
+                .eq("status", "sent")
+                .in_("email", chunk)
+                .execute()
+                .data
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                "Could not read form_reminder_sends — did you run "
+                f"sql/form_reminder_sends.sql in Supabase? ({exc})"
+            ) from exc
+        for r in rows:
+            sent.add((r.get("email") or "").strip().lower())
+    return sent
+
+
+def record_send(member: Member, result: SendResult, prior: dict[str, dict]) -> None:
     """Upsert this attempt into form_reminder_sends so later runs skip the
     member. A tracking failure is logged but never aborts the run."""
     now = datetime.now(timezone.utc).isoformat()
-    previous = prior.get((member.member_id, channel))
+    previous = prior.get(member.member_id)
+    sent = result.outcome is Outcome.OK
     row = {
         "member_id": member.member_id,
         "email": member.email,
         "full_name": member.full_name,
-        "channel": channel,
-        "status": "sent" if result.outcome is Outcome.OK else "failed",
+        "channel": CHANNEL,
+        "status": "sent" if sent else "failed",
         "error_detail": result.detail or None,
         "form_url": FORM_URL,
         "attempts": (previous["attempts"] if previous else 0) + 1,
-        "sent_at": now if result.outcome is Outcome.OK else None,
+        "sent_at": now if sent else None,
         "last_attempt_at": now,
     }
     try:
         supabase.table("form_reminder_sends").upsert(row, on_conflict="member_id,channel").execute()
     except Exception as exc:
-        logger.warning("Could not record %s send for %s: %s",
-                       channel, _mask_email(member.email), exc)
+        logger.warning("Could not record send for %s: %s", _mask_email(member.email), exc)
 
 
 # ---------------------------------------------------------------------------
-# Senders
+# Sending
 # ---------------------------------------------------------------------------
 
 def _contacts_html() -> str:
@@ -285,6 +320,25 @@ def send_email(member: Member) -> None:
     })
 
 
+def send_to_member(member: Member, sent_emails: set[str]) -> SendResult:
+    """Skip if this address was already emailed, else send and convert any
+    exception into a FAILED result — a single recipient's failure must never
+    abort the whole run. The skip is keyed on the email address (see
+    fetch_sent_emails) so nobody is contacted twice. The short reason is kept on
+    the result (and CSV); the full traceback goes to the log file at DEBUG.
+    """
+    if member.email.lower() in sent_emails:
+        return SendResult(Outcome.SKIPPED, "already sent")
+    try:
+        send_email(member)
+        logger.info("email -> %s: OK", _mask_email(member.email))
+        return SendResult(Outcome.OK)
+    except Exception as exc:
+        logger.warning("email -> %s: FAILED: %s", _mask_email(member.email), exc)
+        logger.debug("Traceback for email send", exc_info=True)
+        return SendResult(Outcome.FAILED, str(exc))
+
+
 # ---------------------------------------------------------------------------
 # Orchestration
 # ---------------------------------------------------------------------------
@@ -310,92 +364,84 @@ def _configure_logging(verbose: bool) -> None:
         logger.warning("Could not open log file %s: %s (console logging only)", LOG_FILE, exc)
 
 
-def _print_dry_run(members: list[Member], prior: dict[tuple[str, str], dict]) -> None:
+def _print_dry_run(members: list[Member], sent_emails: set[str]) -> None:
     """Full member details are shown here on purpose — verifying the recipient
     list is the point of a dry run — and both log targets stay local/gitignored."""
     for m in members:
-        already = ("  [already sent]"
-                   if prior.get((m.member_id, "email"), {}).get("status") == "sent" else "")
+        already = "  [already sent — will skip]" if m.email.lower() in sent_emails else ""
         logger.info("  %s | %s | %s%s", m.full_name, m.email, m.country, already)
     logger.info("Form link: %s", FORM_URL)
     logger.info("Dry run — nothing sent.")
 
 
-def _channel_result(channel: str, member: Member, send: Callable[[Member], None],
-                    disabled: bool, prior: dict[tuple[str, str], dict]) -> ChannelResult:
-    """Decide skip vs attempt for one channel, then run to send."""
-    if disabled:
-        return ChannelResult(Outcome.SKIPPED)
-    previous = prior.get((member.member_id, channel))
-    if previous and previous["status"] == "sent":
-        return ChannelResult(Outcome.SKIPPED, "already sent")
-    return _run_channel(channel, member, send)
-
-
 def _run(args: argparse.Namespace) -> None:
-    members = fetch_non_german_members()
+    members = fetch_members_by_country(args.country)
     if not members:
-        logger.info("No non-German members found — nothing to do.")
+        logger.info("No members found for country %s — nothing to do.", args.country)
         return
-    prior = fetch_prior_sends()
-    logger.info("Found %d non-German member(s); %d prior send record(s).",
-                len(members), len(prior))
+    prior = fetch_prior_sends([m.member_id for m in members])
+    sent_emails = fetch_sent_emails([m.email for m in members])
+    logger.info("Found %d member(s) in %s; %d already emailed (will skip), "
+                "%d prior send record(s).",
+                len(members), args.country, len(sent_emails), len(prior))
 
     if args.dry_run:
-        _print_dry_run(members, prior)
+        _print_dry_run(members, sent_emails)
         return
 
-    logger.info(
-        "Sending (email=%s, whatsapp=%s) with %.1fs delay between recipients.",
-        "off" if args.no_email else "on",
-        "off" if args.no_whatsapp else "on",
-        SEND_DELAY_SECONDS,
-    )
+    logger.info("Sending to %s with %.1fs delay between recipients.",
+                args.country, SEND_DELAY_SECONDS)
 
     failed_members = 0
     with open(REPORT_FILE, "w", newline="", encoding="utf-8") as report:
         writer = csv.DictWriter(
-            report, fieldnames=["name", "email", "email_status", "whatsapp_status"],
-            delimiter=";",
+            report, fieldnames=["name", "email", "country", "status"], delimiter=";",
         )
         writer.writeheader()
         for i, member in enumerate(members, start=1):
             logger.info("[%d/%d] %s <%s>", i, len(members),
                         member.full_name, _mask_email(member.email))
-            email_result = _channel_result("email", member, send_email, args.no_email, prior)
-            whatsapp_result = _channel_result(
-                "whatsapp", member, send_whatsapp, args.no_whatsapp, prior)
+            result = send_to_member(member, sent_emails)
 
-            for channel, result in (("email", email_result), ("whatsapp", whatsapp_result)):
-                if result.outcome is not Outcome.SKIPPED:
-                    record_send(member, channel, result, prior)
+            if result.outcome is not Outcome.SKIPPED:
+                record_send(member, result, prior)
+                if result.outcome is Outcome.OK:
+                    # Guard against re-sending to the same address later in this
+                    # same run, independent of the upfront recipient de-dupe.
+                    sent_emails.add(member.email.lower())
+                elif result.outcome is Outcome.FAILED:
+                    failed_members += 1
 
             writer.writerow({
                 "name": _csv_cell(member.full_name),
-                "email": member.email,
-                "email_status": email_result.render(),
-                "whatsapp_status": whatsapp_result.render(),
+                "email": _csv_cell(member.email),
+                "country": member.country,
+                "status": result.render(),
             })
             report.flush()  # a row survives even if the run is interrupted
 
-            if Outcome.FAILED in (email_result.outcome, whatsapp_result.outcome):
-                failed_members += 1
-            attempted = (email_result.outcome is not Outcome.SKIPPED
-                         or whatsapp_result.outcome is not Outcome.SKIPPED)
-            if attempted and i < len(members):
-                time.sleep(SEND_DELAY_SECONDS)  # pace the external APIs
+            # Pace the external API — but only when we actually hit it (skipped
+            # already-sent members cost no call, so no need to wait on them).
+            if result.outcome is not Outcome.SKIPPED and i < len(members):
+                time.sleep(SEND_DELAY_SECONDS)
 
     logger.info("Done. %d processed, %d with failure(s). Report: %s",
                 len(members), failed_members, REPORT_FILE)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Send the form link to all non-German members.")
+    parser = argparse.ArgumentParser(
+        description="Send the form link to all members of one country.")
+    parser.add_argument("--country", required=True,
+                        help="Country code to target, e.g. GB. Only members whose "
+                             "registration.country matches are emailed and recorded.")
     parser.add_argument("--dry-run", action="store_true", help="Preview recipients, send nothing.")
-    parser.add_argument("--no-email", action="store_true", help="Skip email sending.")
-    parser.add_argument("--no-whatsapp", action="store_true", help="Skip WhatsApp sending.")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose (DEBUG) console output.")
     args = parser.parse_args()
+
+    args.country = args.country.strip().upper()  # DB stores codes uppercase (GB, US, IN)
+    if not args.country:
+        parser.error("--country must not be empty")
 
     _configure_logging(args.verbose)
     try:

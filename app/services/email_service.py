@@ -37,10 +37,8 @@ _TRAVEL_ICONS = {
     "icon-explore": _load_bytes("compass.png"),
 }
 
-_HOTEL_URL = "https://www.radissonhotels.com/en-us/booking/room-display?hotelCode=DEBERAAA&checkInDate=2026-08-15&checkOutDate=2026-08-20&adults%5B%5D=2&children%5B%5D=0&aoc%5B%5D=&searchType=pac&promotionCode=YDSINDZE&voucher=&brands=&brandFirst=&so=&usePoints=false"
 _TRAVEL_URL = "https://hpam.hariprabodham.de/venue"
 _EXPLORE_URL = "https://hpam.hariprabodham.de/explore"
-_HOTEL_VIDEO_URL = "https://klfmhhsamhraxohdynyz.supabase.co/storage/v1/object/public/hotel-room-booking-video/hotel-room-booking-guide.mp4"
 
 
 def _safe(text: str) -> str:
@@ -88,8 +86,6 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
     body = (
         _REGISTRATION_TEMPLATE
         .replace("{{MEMBERS_SECTION}}", "\n".join(cards))
-        .replace("{{HOTEL_URL}}", html.escape(_HOTEL_URL))
-        .replace("{{HOTEL_VIDEO_URL}}", html.escape(_HOTEL_VIDEO_URL))
         .replace("{{TRAVEL_URL}}", html.escape(_TRAVEL_URL))
         .replace("{{EXPLORE_URL}}", html.escape(_EXPLORE_URL))
         .replace("{{BLUE_MIRAGE_FONT_URL}}", html.escape(_BLUE_MIRAGE_FONT_URL))

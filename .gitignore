@@ -17,3 +17,4 @@ build/
 send_report.csv
 send_form_non_germany.log
 form_reminder_preview.html
+non_german_phones.csv
