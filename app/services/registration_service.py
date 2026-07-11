@@ -3,7 +3,7 @@ import logging
 from app.core.exceptions import QuotaExceededError, RegistrationInsertError
 from app.core.supabase import supabase
 from app.models.registration import RegistrationInput
-from app.services.email_service import send_combined_qr_email
+from app.services.email_service import send_combined_qr_email, send_logistics_email
 from app.services.qr_service import generate_qr_image
 
 logger = logging.getLogger(__name__)
@@ -115,4 +115,9 @@ def process_qr_and_emails(registration_id: str, members_data: list, primary_emai
             sent += 1
         except Exception:
             logger.exception(f"Email send failed for {reference}")
+        # Second email: travel/accommodation form + transportation guide.
+        try:
+            send_logistics_email(to)
+        except Exception:
+            logger.exception(f"Logistics email send failed for {reference}")
     return sent

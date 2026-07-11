@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>HariPrabodham Germany 2026 — Transportation Guide</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap");
+
+      /* Custom font — only renders in Apple Mail / iOS Mail; others use fallback. */
+      @font-face {
+        font-family: "blue_mirage";
+        src: url("{{BLUE_MIRAGE_FONT_URL}}") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+      }
+
+      /* Reset */
+      body,
+      table,
+      td,
+      p,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+        border-collapse: collapse;
+      }
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+        outline: none;
+        text-decoration: none;
+      }
+
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        font-family: "Source Sans 3", Helvetica, Arial, sans-serif;
+        background-color: #f4eef7;
+        color: #2d1b4e;
+      }
+
+      .email-wrapper {
+        max-width: 600px;
+        width: 100%;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(75, 30, 120, 0.1);
+      }
+
+      /* ==========  HEADER  ========== */
+      .header {
+        background: linear-gradient(135deg, #4a2872 0%, #6b3fa0 100%);
+        background-color: #4a2872; /* Outlook fallback */
+        padding: 28px 32px 22px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -30px;
+        right: -30px;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(232, 178, 90, 0.14);
+      }
+      .header h1 {
+        position: relative;
+        font-family: "blue_mirage", "Playfair Display", Georgia, serif;
+        font-size: 26px;
+        font-weight: 600;
+        color: #ffffff;
+        line-height: 1.2;
+        letter-spacing: 0.5px;
+        margin: 0;
+      }
+      .header .event-location {
+        position: relative;
+        font-family: "blue_mirage", "Cormorant Garamond", Georgia, serif;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 8px;
+      }
+      .header .event-date {
+        position: relative;
+        font-family: "blue_mirage", "Cormorant Garamond", Georgia, serif;
+        font-size: 16px;
+        font-weight: 600;
+        color: #ffc76f;
+        margin-top: 8px;
+        letter-spacing: 1.2px;
+      }
+
+      /* ==========  GREETING  ========== */
+      .greeting {
+        background: #faf6fd;
+        border-bottom: 1px solid #ede0f5;
+        padding: 18px 32px 16px;
+        text-align: center;
+      }
+      .greeting .slogan {
+        font-family: "blue_mirage", "Cormorant Garamond", Georgia, serif;
+        font-style: italic;
+        font-size: 20px;
+        font-weight: 600;
+        color: #6b3fa0;
+        letter-spacing: 0.5px;
+        line-height: 1.3;
+      }
+      .greeting .slogan-translate {
+        font-family: "blue_mirage", "Cormorant Garamond", Georgia, serif;
+        font-style: italic;
+        font-size: 13px;
+        color: #9c8eb0;
+        margin-top: 4px;
+        letter-spacing: 0.3px;
+      }
+
+      /* ==========  BODY  ========== */
+      .body-content {
+        padding: 32px;
+      }
+
+      .intro {
+        font-size: 14px;
+        line-height: 1.65;
+        color: #5a4a72;
+        text-align: center;
+        margin: 0 0 22px;
+      }
+
+      .section-lead {
+        text-align: center;
+        margin-bottom: 18px;
+      }
+      .section-lead h2 {
+        font-family: "blue_mirage", "Playfair Display", Georgia, serif;
+        font-size: 20px;
+        color: #4a2872;
+        font-weight: 700;
+        margin: 0;
+      }
+
+      /* ==========  CTA BUTTON  ========== */
+      .cta-section {
+        text-align: center;
+        margin: 8px 0 4px;
+      }
+      .cta-btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #4a2872, #6b3fa0);
+        background-color: #4a2872;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 13px 30px;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      /* ==========  ORNAMENT (double-tapered gold separator)  ========== */
+      .ornament {
+        width: 40%;
+        margin: 28px auto 18px;
+        border-collapse: collapse;
+      }
+      .ornament .diamond {
+        color: #c89a52;
+        font-size: 14px;
+        line-height: 1;
+        padding: 0 12px;
+        white-space: nowrap;
+        vertical-align: middle;
+      }
+
+      /* ==========  FOOTER  ========== */
+      .footer {
+        background: #4a2872;
+        background-color: #4a2872;
+        padding: 18px 32px;
+        text-align: center;
+      }
+      .footer .copyright {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      /* ==========  MOBILE  ========== */
+      @media screen and (max-width: 600px) {
+        .body-content,
+        .header,
+        .greeting,
+        .footer {
+          padding-left: 20px !important;
+          padding-right: 20px !important;
+        }
+        .header h1 {
+          font-size: 22px !important;
+        }
+      }
+    </style>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f4eef7">
+    <!-- Outer table for guaranteed centering across all clients -->
+    <table
+      role="presentation"
+      align="center"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      width="100%"
+      style="background-color: #f4eef7"
+    >
+      <tr>
+        <td align="center" style="padding: 32px 16px">
+          <!-- Email content wrapper -->
+          <table
+            role="presentation"
+            align="center"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            width="600"
+            style="max-width: 600px; width: 100%"
+            class="email-wrapper"
+          >
+            <tr>
+              <td>
+                <!-- Header -->
+                <div class="header">
+                  <h1>HariPrabodham &middot; Amrut Mahotsav</h1>
+                  <div class="event-location">Germany 2026</div>
+                  <div class="event-date">
+                    15 &middot; 16 &middot; 17 August &mdash; Berlin
+                  </div>
+                </div>
+
+                <!-- Slogan -->
+                <div class="greeting">
+                  <div class="slogan">Na Mein Rahoon Na Meri Arzoo Rahe</div>
+                  <div class="slogan-translate">
+                    May neither I nor my desires remain.
+                  </div>
+                </div>
+
+                <!-- Body -->
+                <div class="body-content">
+                  <div class="section-lead">
+                    <h2>Transportation Guide</h2>
+                  </div>
+
+                  <p class="intro" style="margin: 0 0 8px">
+                    Please find here the travel guide from Berlin Airport (BER)
+                    to the Hotel Berlin:
+                  </p>
+                  <p
+                    class="intro"
+                    style="margin: 0 0 12px; font-weight: 600; color: #4a2872"
+                  >
+                    &#128205; Lützowplatz 17, 10785 Berlin, Germany
+                  </p>
+                  <p class="intro" style="margin: 0 0 22px; font-size: 13px">
+                     Includes both Public Transport and Taxi
+                    options.
+                  </p>
+                  <!-- CTA -->
+                  <div class="cta-section">
+                    <a
+                      href="https://klfmhhsamhraxohdynyz.supabase.co/storage/v1/object/public/transport%20from%20Airport%20to%20Berlin/Transportation_Berlin%20Airport%20to%20Hotel.pdf"
+                      target="_blank"
+                      rel="noopener"
+                      class="cta-btn"
+                      style="color: #ffffff"
+                      ><span style="color: #ffffff"
+                        >View Transportation Guide (PDF)</span
+                      ></a
+                    >
+                  </div>
+
+                  <!-- Separator -->
+                  <table
+                    class="ornament"
+                    role="presentation"
+                    align="center"
+                    cellpadding="0"
+                    cellspacing="0"
+                  >
+                    <tr>
+                      <td valign="middle" style="width: 45%; padding: 0">
+                        <div
+                          style="
+                            height: 1px;
+                            background-color: #c89a52;
+                            background-image: linear-gradient(
+                              to right,
+                              rgba(200, 154, 82, 0) 0%,
+                              #c89a52 50%,
+                              rgba(200, 154, 82, 0) 100%
+                            );
+                            font-size: 0;
+                            line-height: 0;
+                          "
+                        >
+                          &nbsp;
+                        </div>
+                      </td>
+                      <td class="diamond" valign="middle">&#10022;</td>
+                      <td valign="middle" style="width: 45%; padding: 0">
+                        <div
+                          style="
+                            height: 1px;
+                            background-color: #c89a52;
+                            background-image: linear-gradient(
+                              to right,
+                              rgba(200, 154, 82, 0) 0%,
+                              #c89a52 50%,
+                              rgba(200, 154, 82, 0) 100%
+                            );
+                            font-size: 0;
+                            line-height: 0;
+                          "
+                        >
+                          &nbsp;
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Travel queries -->
+                  <div
+                    style="
+                      text-align: center;
+                      font-size: 12px;
+                      line-height: 1.5;
+                      color: #9c8eb0;
+                    "
+                  >
+                    Travel queries:
+                    <span style="color: #4a2872; font-weight: 700"
+                      >Nirav Gevariya</span
+                    >
+                    &middot;
+                    <a
+                      href="tel:+4917657613438"
+                      style="
+                        color: #6b3fa0;
+                        text-decoration: none;
+                        font-weight: 600;
+                        white-space: nowrap;
+                      "
+                      >+49 176 57613438</a
+                    >
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="footer">
+                  <div class="copyright">
+                    &copy; 2026 Yogi Divine Society e.V
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

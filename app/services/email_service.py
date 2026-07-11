@@ -21,6 +21,8 @@ def _load(filename: str) -> str:
 
 _REGISTRATION_TEMPLATE = _load("registration_email.html")
 _MEMBER_CARD_TEMPLATE = _load("member_card.html")
+_TRANSPORT_TEMPLATE = _load("transport_guide_email.html")
+_LOGISTICS_TEMPLATE = _load("logistics_email.html")
 
 
 def _load_bytes(filename: str) -> bytes:
@@ -32,13 +34,6 @@ _INSTAGRAM_ICON_BYTES = _load_bytes("instagram-icon.png")
 _YOUTUBE_ICON_BYTES = _load_bytes("youtube-icon.png")
 _WHATSAPP_ICON_BYTES = _load_bytes("whatsapp.png")
 _TELEGRAM_ICON_BYTES = _load_bytes("telegram.png")
-_TRAVEL_ICONS = {
-    "icon-travel":  _load_bytes("smartphone.png"),
-    "icon-explore": _load_bytes("compass.png"),
-}
-
-_TRAVEL_URL = "https://hpam.hariprabodham.de/venue"
-_EXPLORE_URL = "https://hpam.hariprabodham.de/explore"
 
 
 def _safe(text: str) -> str:
@@ -86,8 +81,6 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
     body = (
         _REGISTRATION_TEMPLATE
         .replace("{{MEMBERS_SECTION}}", "\n".join(cards))
-        .replace("{{TRAVEL_URL}}", html.escape(_TRAVEL_URL))
-        .replace("{{EXPLORE_URL}}", html.escape(_EXPLORE_URL))
         .replace("{{BLUE_MIRAGE_FONT_URL}}", html.escape(_BLUE_MIRAGE_FONT_URL))
         .replace("{{WHATSAPP_URL}}", html.escape(settings.whatsapp_group_url))
         .replace("{{TELEGRAM_URL}}", html.escape(settings.telegram_group_url))
@@ -121,12 +114,6 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
             "content_id": "telegram-icon",
         },
     ])
-    for cid, data in _TRAVEL_ICONS.items():
-        attachments.append({
-            "filename": f"{cid}.png",
-            "content": base64.b64encode(data).decode("utf-8"),
-            "content_id": cid,
-        })
 
     first = html.escape(members_qr[0]["member_name"])
     suffix = "" if len(members_qr) == 1 else f" (+{len(members_qr) - 1})"
@@ -136,3 +123,36 @@ def send_combined_qr_email(to_email: str, members_qr: List[Dict], reference: str
 
     resend.Emails.send(payload)
     logger.info(f"Sent registration email ({len(members_qr)} members) to {_mask_email(to)}")
+
+
+def send_transport_guide_email(to_email: str) -> None:
+    to = to_email.replace("\r", "").replace("\n", "").strip()
+
+    body = _TRANSPORT_TEMPLATE.replace(
+        "{{BLUE_MIRAGE_FONT_URL}}", html.escape(_BLUE_MIRAGE_FONT_URL)
+    )
+
+    subject = "HariPrabodham Germany 2026 - Transportation Guide"
+
+    payload = {"from": settings.resend_from_email, "to": [to], "subject": subject, "html": body}
+
+    resend.Emails.send(payload)
+    logger.info(f"Sent transport guide email to {_mask_email(to)}")
+
+
+def send_logistics_email(to_email: str) -> None:
+    """Second email sent after registration: travel/accommodation form + transportation guide."""
+    to = to_email.replace("\r", "").replace("\n", "").strip()
+
+    body = (
+        _LOGISTICS_TEMPLATE
+        .replace("{{FORM_URL}}", html.escape(settings.form_url))
+        .replace("{{BLUE_MIRAGE_FONT_URL}}", html.escape(_BLUE_MIRAGE_FONT_URL))
+    )
+
+    subject = "HariPrabodham Germany 2026 - Travel & Transportation"
+
+    payload = {"from": settings.resend_from_email, "to": [to], "subject": subject, "html": body}
+
+    resend.Emails.send(payload)
+    logger.info(f"Sent logistics email to {_mask_email(to)}")
